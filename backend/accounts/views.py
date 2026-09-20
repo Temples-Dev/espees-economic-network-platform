@@ -3,7 +3,8 @@ import logging
 from django.contrib.auth import authenticate
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.contrib.auth.password_validation import validate_password
-from rest_framework import permissions, status
+from drf_spectacular.utils import extend_schema, OpenApiResponse
+from rest_framework import permissions, serializers, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -16,12 +17,28 @@ from .serializers import RegisterSerializer, UserSerializer
 logger = logging.getLogger(__name__)
 
 
+class LoginRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)
+
+
+class TokenPairSerializer(serializers.Serializer):
+    refresh = serializers.CharField()
+    access = serializers.CharField()
+
+
 class RegisterView(APIView):
     """Create a member account with an auto-provisioned Espees wallet reference."""
 
     permission_classes = [permissions.AllowAny]
     http_method_names = ['post']
 
+    @extend_schema(
+        tags=['accounts'],
+        summary='Register a member account',
+        request=RegisterSerializer,
+        responses={201: UserSerializer},
+    )
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -48,6 +65,21 @@ class LoginView(APIView):
     permission_classes = [permissions.AllowAny]
     http_method_names = ['post']
 
+    @extend_schema(
+        tags=['accounts'],
+        summary='Sign in and receive JWT tokens',
+        description=(
+            'Rate-limited: up to 5 failures temporarily lock the account for '
+            '15 minutes. Successful sign-in from a new device emits a security '
+            'notification and is persisted to the login activity log.'
+        ),
+        request=LoginRequestSerializer,
+        responses={
+            200: OpenApiResponse(response=TokenPairSerializer, description='Access and refresh tokens'),
+            401: OpenApiResponse(description='Invalid credentials'),
+            429: OpenApiResponse(description='Account temporarily locked'),
+        },
+    )
     def post(self, request):
         email = (request.data.get('email') or '').strip()
         password = request.data.get('password') or ''

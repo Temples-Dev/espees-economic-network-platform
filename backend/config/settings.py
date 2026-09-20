@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
+    'drf_spectacular',
     'corsheaders',
     'core',
     'accounts',
@@ -147,6 +148,28 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Espees Economic Network Platform API',
+    'DESCRIPTION': (
+        'Members trust-network for the Espees economic network: accounts and '
+        'wallet provisioning, business directories and reviews, community '
+        'conversations, quotes, campaigns, and notifications.'
+    ),
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'COMPONENT_SPLIT_REQUEST': True,
+    'TAGS': [
+        {'name': 'accounts', 'description': 'Registration, authentication, sessions and security.'},
+        {'name': 'businesses', 'description': 'Member businesses and trade profiles.'},
+        {'name': 'reviews', 'description': 'Trust-building reviews on member businesses.'},
+        {'name': 'conversations', 'description': 'Community conversations and messages.'},
+        {'name': 'quotes', 'description': 'Supplier requests and vendor quotes.'},
+        {'name': 'campaigns', 'description': 'Community savings campaigns.'},
+        {'name': 'notifications', 'description': 'In-app alerts and preferences.'},
+    ],
 }
 
 # Simple JWT — used by the mobile app for authentication
