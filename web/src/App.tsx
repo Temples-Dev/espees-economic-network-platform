@@ -79,7 +79,7 @@ export function App() {
           <button
             key={m}
             onClick={() => setMode(m)}
-            className={m === mode ? "font-medium text-emerald-500" : "text-zinc-400"}
+            className={m === mode ? "font-medium text-gold" : "text-zinc-400"}
           >
             {m === "login" ? "Sign in" : "Create account"}
           </button>
@@ -113,7 +113,7 @@ export function App() {
         {error && <p className="text-sm text-red-400">{error}</p>}
         <button
           disabled={busy}
-          className="w-full rounded-lg bg-emerald-600 px-4 py-2 font-medium text-white hover:bg-emerald-500 disabled:opacity-50"
+          className="w-full rounded-lg bg-royal px-4 py-2 font-medium text-white hover:bg-deep disabled:opacity-50"
         >
           {busy ? "Working…" : mode === "login" ? "Sign in" : "Create account"}
         </button>

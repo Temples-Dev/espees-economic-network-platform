@@ -6,4 +6,14 @@
     ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace;
   --font-rounded: 'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif;
   --font-serif: Georgia, 'Times New Roman', serif;
+
+  /* EENP brand tokens (mirrors constants/theme.ts Brand) */
+  --color-royal: #18379c;
+  --color-deep: #0b298e;
+  --color-gold: #dabf79;
+  --color-bronze: #836b58;
+  --color-ink: #313131;
+  --color-brand-text: #293d48;
+  --color-body: #676767;
+  --color-paper: #f6f6f6;
 }

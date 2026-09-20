@@ -7,13 +7,35 @@ import '@/global.css';
 
 import { Platform } from 'react-native';
 
+/**
+ * EENP brand tokens (from mobile/design-tokens.txt).
+ * Royal Blue + Champagne Gold + Charcoal + Off-White.
+ * These are scheme-independent: identical in light and dark.
+ */
+export const Brand = {
+  royal: '#18379C',
+  deep: '#0B298E',
+  gold: '#DABF79',
+  bronze: '#836B58',
+  ink: '#313131',
+  brandText: '#293D48',
+  body: '#676767',
+  paper: '#F6F6F6',
+  white: '#FFFFFF',
+} as const;
+
 export const Colors = {
   light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
+    text: Brand.ink,
+    background: Brand.paper,
+    backgroundElement: Brand.white,
+    backgroundSelected: '#E3E8F7',
+    textSecondary: Brand.body,
+    primary: Brand.royal,
+    primaryDeep: Brand.deep,
+    gold: Brand.gold,
+    bronze: Brand.bronze,
+    brandText: Brand.brandText,
   },
   dark: {
     text: '#ffffff',
@@ -21,6 +43,11 @@ export const Colors = {
     backgroundElement: '#212225',
     backgroundSelected: '#2E3135',
     textSecondary: '#B0B4BA',
+    primary: Brand.royal,
+    primaryDeep: Brand.deep,
+    gold: Brand.gold,
+    bronze: Brand.bronze,
+    brandText: Brand.gold,
   },
 } as const;
 
