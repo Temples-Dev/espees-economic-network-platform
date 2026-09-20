@@ -56,7 +56,7 @@ Authentication uses JWT (simplejwt). Protected endpoints expect `Authorization: 
 | `POST` | `/api/v1/reviews/` | Review a business or offering, rating 1–5 (one per target) |
 | `PATCH` | `/api/v1/reviews/{id}/` | Edit your review (author only) |
 | `GET` | `/api/v1/conversations/` | Your message threads (ordered by last message, with `unread_count`) |
-| `POST` | `/api/v1/conversations/` | Start a thread (`other_party`, optional `order`/`business` context; direct threads are reused) |
+| `POST` | `/api/v1/conversations/` | Start a thread (`other_party`, optional `order`/`business`/`campaign` context; one thread per pair per context) |
 | `GET` | `/api/v1/conversations/{id}/` | Thread detail with last 100 messages (participants only) |
 | `POST` | `/api/v1/conversations/{id}/messages/` | Send a message (participants only) |
 | `POST` | `/api/v1/conversations/{id}/read/` | Mark incoming messages as read |

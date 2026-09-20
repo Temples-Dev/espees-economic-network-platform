@@ -12,8 +12,8 @@ class MessageInline(admin.TabularInline):
 
 @admin.register(Conversation)
 class ConversationAdmin(admin.ModelAdmin):
-    list_display = ['id', 'initiator', 'other_party', 'business', 'order', 'created_at']
-    search_fields = ['initiator__email', 'other_party__email', 'business__name']
+    list_display = ['id', 'initiator', 'other_party', 'business', 'order', 'campaign', 'created_at']
+    search_fields = ['initiator__email', 'other_party__email', 'business__name', 'campaign__title']
     inlines = [MessageInline]
 
 

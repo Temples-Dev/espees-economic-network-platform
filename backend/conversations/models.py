@@ -7,8 +7,9 @@ from django.db import models
 class Conversation(models.Model):
     """A message thread between two members, optionally tied to an economic object.
 
-    ``business`` / ``order`` provide contextual anchoring without affecting the
-    participants — communication stays associated with the relevant economic activity.
+    ``business`` / ``order`` / ``campaign`` provide contextual anchoring without
+    affecting the participants — communication stays associated with the relevant
+    economic activity.
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -36,6 +37,13 @@ class Conversation(models.Model):
         blank=True,
         related_name='conversations',
     )
+    campaign = models.ForeignKey(
+        'campaigns.Campaign',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='conversations',
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -45,6 +53,8 @@ class Conversation(models.Model):
         indexes = [
             models.Index(fields=['initiator', 'order']),
             models.Index(fields=['other_party', 'order']),
+            models.Index(fields=['initiator', 'campaign']),
+            models.Index(fields=['other_party', 'campaign']),
         ]
 
     def __str__(self):

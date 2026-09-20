@@ -34,6 +34,7 @@ class ConversationSerializer(serializers.ModelSerializer):
     other_party = MemberSummarySerializer(read_only=True)
     business_name = serializers.CharField(source='business.name', read_only=True, default=None)
     order_id = serializers.UUIDField(source='order.id', read_only=True, default=None)
+    campaign_title = serializers.CharField(source='campaign.title', read_only=True, default=None)
     last_message_at = serializers.SerializerMethodField()
     unread_count = serializers.SerializerMethodField()
 
@@ -47,11 +48,24 @@ class ConversationSerializer(serializers.ModelSerializer):
             'business_name',
             'order',
             'order_id',
+            'campaign',
+            'campaign_title',
             'last_message_at',
             'unread_count',
             'created_at',
         ]
-        read_only_fields = ['id', 'initiator', 'other_party', 'business', 'business_name', 'order', 'order_id', 'created_at']
+        read_only_fields = [
+            'id',
+            'initiator',
+            'other_party',
+            'business',
+            'business_name',
+            'order',
+            'order_id',
+            'campaign',
+            'campaign_title',
+            'created_at',
+        ]
 
     def get_last_message_at(self, obj):
         return getattr(obj, 'last_message_at', None)
@@ -77,6 +91,7 @@ class ConversationCreateSerializer(serializers.Serializer):
     other_party = serializers.UUIDField()
     business = serializers.UUIDField(required=False)
     order = serializers.UUIDField(required=False)
+    campaign = serializers.UUIDField(required=False)
 
     def validate_other_party(self, value):
         user = self.context['request'].user
@@ -111,27 +126,42 @@ class ConversationCreateSerializer(serializers.Serializer):
                 attrs['business'] = Business.objects.get(pk=business_id)
             except Business.DoesNotExist:
                 raise serializers.ValidationError({'business': 'Business not found.'})
+        campaign_id = attrs.get('campaign')
+        if campaign_id:
+            from campaigns.models import Campaign
+            try:
+                attrs['campaign'] = Campaign.objects.get(pk=campaign_id)
+            except Campaign.DoesNotExist:
+                raise serializers.ValidationError({'campaign': 'Campaign not found.'})
         return attrs
 
     def create(self, validated_data):
         request = self.context['request']
-        order = validated_data.get('order')
-        business = validated_data.get('business')
         other_party = validated_data['other_party']
 
-        if order is None and business is None:
-            # Direct thread — reuse an existing conversation between the pair.
-            existing = Conversation.objects.filter(
-                initiator=request.user, other_party_id=other_party, order__isnull=True, business__isnull=True
-            ).first() or Conversation.objects.filter(
-                initiator_id=other_party, other_party=request.user, order__isnull=True, business__isnull=True
-            ).first()
-            if existing:
-                return existing
+        context = {
+            'order': validated_data.get('order'),
+            'business': validated_data.get('business'),
+            'campaign': validated_data.get('campaign'),
+        }
+        anchor = {key: value for key, value in context.items() if value is not None}
+
+        # Reuse one thread per pair for the same context (or none for direct).
+        context_filters = dict(anchor) or {
+            'order__isnull': True,
+            'business__isnull': True,
+            'campaign__isnull': True,
+        }
+        existing = Conversation.objects.filter(
+            initiator=request.user, other_party_id=other_party, **context_filters
+        ).first() or Conversation.objects.filter(
+            initiator_id=other_party, other_party=request.user, **context_filters
+        ).first()
+        if existing:
+            return existing
 
         return Conversation.objects.create(
             initiator=request.user,
             other_party_id=other_party,
-            business=business,
-            order=order,
+            **anchor,
         )

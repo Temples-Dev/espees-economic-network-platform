@@ -19,7 +19,7 @@ class ConversationViewSet(viewsets.ModelViewSet):
     """Member-to-member threads, optionally anchored to an order or business."""
 
     queryset = Conversation.objects.select_related(
-        'initiator', 'other_party', 'business', 'order'
+        'initiator', 'other_party', 'business', 'order', 'campaign'
     )
     permission_classes = [permissions.IsAuthenticated, IsConversationParticipant]
     lookup_field = 'id'

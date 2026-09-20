@@ -4,6 +4,7 @@ from rest_framework.test import APITestCase
 
 from accounts.models import User
 from businesses.models import Business, BusinessMembership
+from campaigns.models import Campaign
 from commerce.models import Offering, Order
 from conversations.models import Conversation, Message
 
@@ -134,3 +135,71 @@ class ConversationApiTests(APITestCase):
         results = listing.data['results']
         self.assertEqual(results[0]['id'], str(conv.id))
         self.assertEqual(results[0]['unread_count'], 1)
+
+    def setUpCampaign(self, title='School Roof'):
+        return Campaign.objects.create(creator=self.bob, title=title, goal_espees='5000.00', status=Campaign.Status.ACTIVE)
+
+    def test_create_campaign_conversation(self):
+        campaign = self.setUpCampaign()
+        self.client.force_authenticate(user=self.alice)
+        resp = self.client.post(
+            self.list_url(),
+            {'other_party': str(self.bob.id), 'campaign': str(campaign.id)},
+            format='json',
+        )
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(str(resp.data['campaign']), str(campaign.id))
+        self.assertEqual(resp.data['campaign_title'], 'School Roof')
+
+    def test_campaign_conversation_reused_per_context(self):
+        campaign_a = self.setUpCampaign('A')
+        campaign_b = self.setUpCampaign('B')
+        self.client.force_authenticate(user=self.alice)
+        payload = {'other_party': str(self.bob.id), 'campaign': str(campaign_a.id)}
+        first = self.client.post(self.list_url(), payload, format='json')
+        second = self.client.post(self.list_url(), payload, format='json')
+        self.assertEqual(first.data['id'], second.data['id'])
+
+        different = self.client.post(
+            self.list_url(), {'other_party': str(self.bob.id), 'campaign': str(campaign_b.id)}, format='json'
+        )
+        self.assertNotEqual(first.data['id'], different.data['id'])
+        self.assertEqual(Conversation.objects.count(), 2)
+
+    def test_campaign_conversation_context_is_distinct_from_direct(self):
+        campaign = self.setUpCampaign()
+        self.client.force_authenticate(user=self.alice)
+        direct = self.client.post(self.list_url(), {'other_party': str(self.bob.id)}, format='json')
+        contextual = self.client.post(
+            self.list_url(),
+            {'other_party': str(self.bob.id), 'campaign': str(campaign.id)},
+            format='json',
+        )
+        self.assertNotEqual(direct.data['id'], contextual.data['id'])
+
+    def test_campaign_must_exist(self):
+        self.client.force_authenticate(user=self.alice)
+        resp = self.client.post(
+            self.list_url(),
+            {'other_party': str(self.bob.id), 'campaign': '00000000-0000-0000-0000-000000000000'},
+            format='json',
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_campaign_conversation_listing_includes_campaign(self):
+        campaign = self.setUpCampaign()
+        conv = Conversation.objects.create(initiator=self.alice, other_party=self.bob, campaign=campaign)
+        self.client.force_authenticate(user=self.alice)
+        listing = self.client.get(self.list_url())
+        self.assertEqual(listing.data['results'][0]['campaign_title'], 'School Roof')
+
+    def test_campaign_conversation_notifies_other_party(self):
+        campaign = self.setUpCampaign()
+        self.client.force_authenticate(user=self.alice)
+        conv = self.client.post(
+            self.list_url(),
+            {'other_party': str(self.bob.id), 'campaign': str(campaign.id)},
+            format='json',
+        )
+        self.client.post(self.messages_url(Conversation.objects.get(pk=conv.data['id'])), {'body': 'hi'}, format='json')
+        self.assertTrue(Message.objects.get().body, 'hi')
