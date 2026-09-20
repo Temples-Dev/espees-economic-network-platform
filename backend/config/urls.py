@@ -10,4 +10,5 @@ urlpatterns = [
     path(f'{settings.API_PREFIX}/', include('core.urls')),
     path(f'{settings.API_PREFIX}/', include('accounts.urls')),
     path(f'{settings.API_PREFIX}/', include('businesses.urls')),
+    path(f'{settings.API_PREFIX}/', include('commerce.urls')),
 ]
