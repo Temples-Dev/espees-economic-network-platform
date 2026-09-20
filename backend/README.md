@@ -55,6 +55,11 @@ Authentication uses JWT (simplejwt). Protected endpoints expect `Authorization: 
 | `GET` | `/api/v1/reviews/` | Reviews (public) — filters: `business`, `offering`, `reviewer` |
 | `POST` | `/api/v1/reviews/` | Review a business or offering, rating 1–5 (one per target) |
 | `PATCH` | `/api/v1/reviews/{id}/` | Edit your review (author only) |
+| `GET` | `/api/v1/conversations/` | Your message threads (ordered by last message, with `unread_count`) |
+| `POST` | `/api/v1/conversations/` | Start a thread (`other_party`, optional `order`/`business` context; direct threads are reused) |
+| `GET` | `/api/v1/conversations/{id}/` | Thread detail with last 100 messages (participants only) |
+| `POST` | `/api/v1/conversations/{id}/messages/` | Send a message (participants only) |
+| `POST` | `/api/v1/conversations/{id}/read/` | Mark incoming messages as read |
 | `GET` | `/api/v1/health/` | Service health |
 | `GET` | `/admin/` | Django admin |
 
