@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'reviews',
     'conversations',
     'quotes',
+    'campaigns',
 ]
 
 MIDDLEWARE = [

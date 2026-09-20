@@ -14,4 +14,5 @@ urlpatterns = [
     path(f'{settings.API_PREFIX}/', include('reviews.urls')),
     path(f'{settings.API_PREFIX}/', include('conversations.urls')),
     path(f'{settings.API_PREFIX}/', include('quotes.urls')),
+    path(f'{settings.API_PREFIX}/', include('campaigns.urls')),
 ]

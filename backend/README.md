@@ -67,6 +67,13 @@ Authentication uses JWT (simplejwt). Protected endpoints expect `Authorization: 
 | `GET` | `/api/v1/quotes/` | Quotes (public) — filter: `request` |
 | `POST` | `/api/v1/quotes/` | Submit a quote on an open request (supplier business member, not your own request) |
 | `POST` | `/api/v1/quotes/{id}/accept/` | Accept a quote; closes the request and declines the rest |
+| `GET` | `/api/v1/campaigns/` | Campaigns (drafts visible to creator) |
+| `POST` | `/api/v1/campaigns/` | Create a campaign as a draft |
+| `POST` | `/api/v1/campaigns/{id}/submit/` · `/cancel/` · `/complete/` | Lifecycle transitions (creator only) |
+| `POST` | `/api/v1/campaigns/{id}/contribute/` | Contribute Espees (any member except the creator; auto-completes at goal) |
+| `POST` | `/api/v1/campaigns/{id}/updates/` · `/milestones/` | Post an update / add a milestone (creator only) |
+| `GET` | `/api/v1/campaigns/{id}/` | Transparency: `raised_espees`, `contribution_count`, `disbursed_espees`, milestones, updates |
+| `PATCH` | `/api/v1/campaign-milestones/{id}/` | Mark a milestone achieved/disbursed (creator only) |
 | `GET` | `/api/v1/health/` | Service health |
 | `GET` | `/admin/` | Django admin |
 
