@@ -9,4 +9,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path(f'{settings.API_PREFIX}/', include('core.urls')),
     path(f'{settings.API_PREFIX}/', include('accounts.urls')),
+    path(f'{settings.API_PREFIX}/', include('businesses.urls')),
 ]

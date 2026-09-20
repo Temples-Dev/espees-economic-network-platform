@@ -38,6 +38,13 @@ Authentication uses JWT (simplejwt). Protected endpoints expect `Authorization: 
 | `POST` | `/api/v1/auth/login/` | Obtain access + refresh tokens |
 | `POST` | `/api/v1/auth/refresh/` | Refresh an access token |
 | `GET` | `/api/v1/me/` | Current member profile + wallet (auth required) |
+| `GET` | `/api/v1/businesses/` | Business discovery (public) — filters: `search`, `category` |
+| `GET` | `/api/v1/businesses/{id}/` | Business detail incl. owner + admins (public) |
+| `POST` | `/api/v1/businesses/` | Create a business (auth required; creator becomes owner) |
+| `PATCH` | `/api/v1/businesses/{id}/` | Update a business (owner/admin only) |
+| `DELETE` | `/api/v1/businesses/{id}/` | Delete a business (owner only) |
+| `POST` | `/api/v1/businesses/{id}/members/` | Add an admin by email (owner/admin only) |
+| `GET` | `/api/v1/categories/` | Business categories (public) |
 | `GET` | `/api/v1/health/` | Service health |
 | `GET` | `/admin/` | Django admin |
 
