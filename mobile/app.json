@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Espees",
-    "slug": "espees",
+    "name": "EENP",
+    "slug": "eenp",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "espees",
+    "scheme": "eenp",
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon"

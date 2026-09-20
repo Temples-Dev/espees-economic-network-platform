@@ -2,7 +2,7 @@ from django.http import JsonResponse
 from django.utils import timezone
 
 APP_INFO = {
-    'name': 'Espees Economic Network Platform API',
+    'name': 'EENP — Espees Economic Network Platform API',
     'version': '0.1.0',
 }
 
