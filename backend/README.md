@@ -30,8 +30,16 @@ On startup the container runs migrations and `collectstatic`, then serves the ap
 
 ## API
 
-- Health check: `GET /api/v1/health/`
-- Admin: `GET /admin/`
+Authentication uses JWT (simplejwt). Protected endpoints expect `Authorization: Bearer <access>`.
+
+| Method | Path | Description |
+| --- | --- | --- |
+| `POST` | `/api/v1/auth/register/` | Create a member account (auto-provisions a wallet reference) |
+| `POST` | `/api/v1/auth/login/` | Obtain access + refresh tokens |
+| `POST` | `/api/v1/auth/refresh/` | Refresh an access token |
+| `GET` | `/api/v1/me/` | Current member profile + wallet (auth required) |
+| `GET` | `/api/v1/health/` | Service health |
+| `GET` | `/admin/` | Django admin |
 
 ## Environment variables
 
