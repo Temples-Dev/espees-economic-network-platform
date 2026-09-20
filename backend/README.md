@@ -60,6 +60,13 @@ Authentication uses JWT (simplejwt). Protected endpoints expect `Authorization: 
 | `GET` | `/api/v1/conversations/{id}/` | Thread detail with last 100 messages (participants only) |
 | `POST` | `/api/v1/conversations/{id}/messages/` | Send a message (participants only) |
 | `POST` | `/api/v1/conversations/{id}/read/` | Mark incoming messages as read |
+| `GET` | `/api/v1/supplier-requests/` | Supplier requests (public) — filters: `status`, `category` |
+| `POST` | `/api/v1/supplier-requests/` | Create a request (requester business member only) |
+| `GET` | `/api/v1/supplier-requests/{id}/` | Detail with all quotes (`accepted_quote`, `quote_count`) |
+| `PATCH` | `/api/v1/supplier-requests/{id}/` | Update / close a request (requester business member only) |
+| `GET` | `/api/v1/quotes/` | Quotes (public) — filter: `request` |
+| `POST` | `/api/v1/quotes/` | Submit a quote on an open request (supplier business member, not your own request) |
+| `POST` | `/api/v1/quotes/{id}/accept/` | Accept a quote; closes the request and declines the rest |
 | `GET` | `/api/v1/health/` | Service health |
 | `GET` | `/admin/` | Django admin |
 
