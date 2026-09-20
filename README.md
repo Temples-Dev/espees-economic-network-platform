@@ -63,8 +63,28 @@ This repository contains the product documentation suite, starting with the **Pr
 
 ```
 Qubators AI Foundary 2.0_  Espees Product.md   # Product documentation suite (PVS-001 + drafts)
+mobile/                                        # Mobile app — React Native + Expo (SDK 57)
+  ├── src/app/                                 # expo-router file-based routing
+  ├── src/components/                          # Reusable UI components
+  ├── src/constants/                           # Theme and app constants
+  └── src/hooks/                               # Shared hooks
 README.md                                      # This file
 ```
+
+## Mobile App
+
+The mobile application is built with **React Native + Expo (SDK 57) + TypeScript**, using expo-router for file-based navigation. React 19 with the React Compiler and typed routes are enabled.
+
+```bash
+cd mobile
+pnpm install        # install dependencies
+pnpm start          # start the Expo dev server
+pnpm run android    # launch on Android (or Expo Go)
+pnpm run ios        # launch on iOS (macOS + Expo Go)
+pnpm run web        # run in the browser
+```
+
+Use `expo start` to run on a physical device via the Expo Go app — no simulator required.
 
 ## Status
 
