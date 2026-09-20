@@ -1,0 +1,16 @@
+services:
+  backend:
+    build: .
+    env_file: .env
+    # No ports: — the reverse proxy (e.g. Coolify) routes to the container internally.
+    # Uncomment for local docker testing:
+    ports:
+      - "8000:8000"
+    volumes:
+      - data:/app/data
+      - media:/app/media
+    restart: unless-stopped
+
+volumes:
+  data:
+  media:

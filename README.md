@@ -68,8 +68,42 @@ mobile/                                        # Mobile app — React Native + E
   ├── src/components/                          # Reusable UI components
   ├── src/constants/                           # Theme and app constants
   └── src/hooks/                               # Shared hooks
+backend/                                       # API — Django 6 + Django REST Framework
+  ├── config/                                  # Project settings, URLs, WSGI
+  ├── core/                                    # Core app (health check)
+  ├── Dockerfile + docker-compose.yaml         # Production container (gunicorn)
+  └── entrypoint.sh                            # migrate + collectstatic + serve
 README.md                                      # This file
 ```
+
+## Backend (Django API)
+
+The API is built with **Django 6 + Django REST Framework**, packaged for production in Docker and served with gunicorn.
+
+### Development (venv)
+
+```bash
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env   # defaults work for local dev
+python manage.py migrate
+python manage.py runserver   # http://localhost:8000
+```
+
+### Production (Docker)
+
+```bash
+cd backend
+cp .env.example .env   # set real values
+docker compose -f docker-compose.yaml up --build -d
+```
+
+### Endpoints
+
+- Health check: `GET /api/v1/health/`
+- Admin: `GET /admin/`
 
 ## Mobile App
 

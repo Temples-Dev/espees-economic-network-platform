@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+**/.venv/
+
+# Django
+backend/data/*.sqlite3
+backend/staticfiles/
+backend/media/
+backend/.env
+
+# Node / Expo (mobile has its own .gitignore)
+node_modules/
+
+# OS
+.DS_Store
+
+# Editor
+*.swp
+.idea/
