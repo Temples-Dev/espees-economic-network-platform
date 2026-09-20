@@ -45,6 +45,16 @@ Authentication uses JWT (simplejwt). Protected endpoints expect `Authorization: 
 | `DELETE` | `/api/v1/businesses/{id}/` | Delete a business (owner only) |
 | `POST` | `/api/v1/businesses/{id}/members/` | Add an admin by email (owner/admin only) |
 | `GET` | `/api/v1/categories/` | Business categories (public) |
+| `GET` | `/api/v1/products/` · `/api/v1/services/` | Offerings (public) — filters: `search`, `category`, `business` |
+| `POST` | `/api/v1/products/` · `/api/v1/services/` | Create an offering (business member only) |
+| `PATCH` | `/api/v1/products/{id}/` · `/api/v1/services/{id}/` | Update an offering (business member only) |
+| `GET` | `/api/v1/products/mine/` | Offerings of businesses you manage |
+| `GET` | `/api/v1/orders/` | Your orders (or a business's, with `?business=` if you manage it) |
+| `POST` | `/api/v1/orders/` | Create an order from offerings of one business (computed totals) |
+| `PATCH` | `/api/v1/orders/{id}/status/` | Update order status (business member only) |
+| `GET` | `/api/v1/reviews/` | Reviews (public) — filters: `business`, `offering`, `reviewer` |
+| `POST` | `/api/v1/reviews/` | Review a business or offering, rating 1–5 (one per target) |
+| `PATCH` | `/api/v1/reviews/{id}/` | Edit your review (author only) |
 | `GET` | `/api/v1/health/` | Service health |
 | `GET` | `/admin/` | Django admin |
 

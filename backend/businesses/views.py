@@ -20,6 +20,7 @@ class BusinessViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = super().get_queryset().filter(is_active=True)
+        qs = BusinessSerializer.setup_eager_loading(qs)
         category = self.request.query_params.get('category')
         if category:
             qs = qs.filter(category__slug=category)

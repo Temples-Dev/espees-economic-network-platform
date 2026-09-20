@@ -1,6 +1,8 @@
 from django.db.models.query import QuerySet
 from rest_framework import serializers
 
+from reviews.models import Review
+
 from .models import Business, BusinessMembership, Category
 
 
@@ -25,6 +27,8 @@ class BusinessSerializer(serializers.ModelSerializer):
     category = serializers.SlugRelatedField(
         slug_field='name', queryset=Category.objects.all(), required=False, allow_null=True
     )
+    average_rating = serializers.SerializerMethodField()
+    review_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Business
@@ -39,10 +43,30 @@ class BusinessSerializer(serializers.ModelSerializer):
             'contact_phone',
             'verification_status',
             'is_active',
+            'average_rating',
+            'review_count',
             'created_at',
             'updated_at',
         ]
-        read_only_fields = ['id', 'slug', 'verification_status', 'is_active', 'created_at', 'updated_at']
+        read_only_fields = [
+            'id', 'slug', 'verification_status', 'is_active',
+            'average_rating', 'review_count', 'created_at', 'updated_at',
+        ]
+
+    def get_average_rating(self, obj):
+        average = getattr(obj, 'average_rating', None)
+        return round(average, 2) if average else None
+
+    def get_review_count(self, obj):
+        return getattr(obj, 'review_count', 0)
+
+    @classmethod
+    def setup_eager_loading(cls, queryset):
+        from django.db.models import Avg, Count
+        return queryset.annotate(
+            average_rating=Avg('reviews__rating'),
+            review_count=Count('reviews'),
+        )
 
 
 class BusinessDetailSerializer(BusinessSerializer):

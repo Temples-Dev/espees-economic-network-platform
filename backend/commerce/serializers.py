@@ -9,6 +9,8 @@ class OfferingSerializer(serializers.ModelSerializer):
     category = serializers.SlugRelatedField(
         slug_field='name', queryset=Category.objects.all(), required=False, allow_null=True
     )
+    average_rating = serializers.SerializerMethodField()
+    review_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Offering
@@ -22,12 +24,24 @@ class OfferingSerializer(serializers.ModelSerializer):
             'description',
             'category',
             'price',
+            'average_rating',
+            'review_count',
             'is_active',
             'created_at',
             'updated_at',
         ]
-        read_only_fields = ['id', 'kind', 'business_name', 'slug', 'is_active', 'created_at', 'updated_at']
+        read_only_fields = [
+            'id', 'kind', 'business_name', 'slug', 'is_active',
+            'average_rating', 'review_count', 'created_at', 'updated_at',
+        ]
         extra_kwargs = {'business': {'required': True}}
+
+    def get_average_rating(self, obj):
+        average = getattr(obj, 'average_rating', None)
+        return round(average, 2) if average else None
+
+    def get_review_count(self, obj):
+        return getattr(obj, 'review_count', 0)
 
 
 class OrderItemWriteSerializer(serializers.Serializer):

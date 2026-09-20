@@ -1,4 +1,4 @@
-from django.db.models import Q
+from django.db.models import Avg, Count, Q
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -26,6 +26,10 @@ class OfferingViewSet(viewsets.ModelViewSet):
         qs = super().get_queryset().filter(is_active=True)
         if self.kind is not None:
             qs = qs.filter(kind=self.kind)
+        qs = qs.annotate(
+            average_rating=Avg('reviews__rating'),
+            review_count=Count('reviews'),
+        )
         category = self.request.query_params.get('category')
         if category:
             qs = qs.filter(category__slug=category)
