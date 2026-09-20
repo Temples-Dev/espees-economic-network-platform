@@ -1,91 +1,20 @@
 import { useCallback, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
 import {
   AuthGate,
   Card,
-  ErrorText,
-  Field,
   LinkButton,
-  Loading,
   NoticeText,
   OutlineButton,
-  PrimaryButton,
   Screen,
 } from '@/components/ui';
-import { Brand, Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
-import { api, errorMessage } from '@/lib/api';
+import { Spacing } from '@/constants/theme';
+import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import type { AppNotification } from '@/lib/types';
-
-function SignInForm() {
-  const { login, register } = useAuth();
-  const theme = useTheme();
-  const [mode, setMode] = useState<'login' | 'register'>('login');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function submit() {
-    setError(null);
-    setBusy(true);
-    try {
-      if (mode === 'login') {
-        await login(email.trim(), password);
-      } else {
-        await register({ email: email.trim(), password });
-        await login(email.trim(), password);
-      }
-    } catch (err) {
-      setError(errorMessage(err, mode === 'login' ? 'Sign-in failed.' : 'Sign-up failed.'));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <>
-      <ThemedText type="subtitle">EENP</ThemedText>
-      <ThemedText themeColor="textSecondary">Espees Economic Network</ThemedText>
-
-      <View style={{ flexDirection: 'row', gap: Spacing.four }}>
-        {(['login', 'register'] as const).map((m) => (
-          <Pressable key={m} onPress={() => setMode(m)}>
-            <ThemedText
-              type="smallBold"
-              style={{ color: m === mode ? Brand.gold : theme.textSecondary }}>
-              {m === 'login' ? 'Sign in' : 'Create account'}
-            </ThemedText>
-          </Pressable>
-        ))}
-      </View>
-
-      <Field
-        label="Email"
-        autoCapitalize="none"
-        keyboardType="email-address"
-        value={email}
-        onChangeText={setEmail}
-      />
-      <Field
-        label={mode === 'login' ? 'Password' : 'Choose a password'}
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
-      <ErrorText message={error} />
-      <PrimaryButton
-        title={busy ? 'Working…' : mode === 'login' ? 'Sign in' : 'Create account'}
-        onPress={() => void submit()}
-        disabled={busy}
-      />
-    </>
-  );
-}
 
 function Dashboard() {
   const { user, logout } = useAuth();
@@ -174,11 +103,11 @@ function Dashboard() {
 }
 
 export default function HomeScreen() {
-  const { user, loading } = useAuth();
-  if (loading) return <Loading />;
   return (
-    <Screen>
-      {user ? <Dashboard /> : <SignInForm />}
-    </Screen>
+    <AuthGate title="Home" blurb="Sign in to see your dashboard.">
+      <Screen>
+        <Dashboard />
+      </Screen>
+    </AuthGate>
   );
 }

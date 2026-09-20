@@ -9,7 +9,7 @@ import {
   type TextInputProps,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Link } from 'expo-router';
+import { Link, type Href } from 'expo-router';
 
 import { ThemedText } from './themed-text';
 import { ThemedView } from './themed-view';
@@ -56,7 +56,7 @@ export function AuthGate({
           <ThemedText themeColor="textSecondary">
             {blurb ?? 'Sign in to continue.'}
           </ThemedText>
-          <Link href="/" asChild>
+          <Link href="/sign-in" asChild>
             <Pressable>
               <ThemedText type="linkPrimary">Go to sign-in</ThemedText>
             </Pressable>
@@ -143,7 +143,7 @@ export function OutlineButton({
   );
 }
 
-export function LinkButton({ href, title }: { href: string; title: string }) {
+export function LinkButton({ href, title }: { href: Href; title: string }) {
   const theme = useTheme();
   return (
     <Link href={href} asChild>
