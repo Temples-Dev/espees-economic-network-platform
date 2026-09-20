@@ -35,6 +35,7 @@ class UserSerializer(serializers.ModelSerializer):
             'phone',
             'full_name',
             'is_verified',
+            'is_staff',
             'created_at',
             'wallet',
         ]
