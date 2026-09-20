@@ -23,21 +23,51 @@ export default function AppTabs() {
         />
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="sessions">
-        <NativeTabs.Trigger.Label>Sessions</NativeTabs.Trigger.Label>
+      <NativeTabs.Trigger name="discover">
+        <NativeTabs.Trigger.Label>Discover</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
-          sf="clock"
-          md="history"
+          sf="magnifyingglass"
+          md="search"
           src={require('@/assets/images/tabIcons/explore.png')}
           renderingMode="template"
         />
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="account">
-        <NativeTabs.Trigger.Label>Account</NativeTabs.Trigger.Label>
+      <NativeTabs.Trigger name="pay">
+        <NativeTabs.Trigger.Label>Pay</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
-          sf="person.circle"
-          md="person"
+          sf="creditcard"
+          md="payments"
+          src={require('@/assets/images/tabIcons/home.png')}
+          renderingMode="template"
+        />
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="build">
+        <NativeTabs.Trigger.Label>Build</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon
+          sf="hammer"
+          md="build"
+          src={require('@/assets/images/tabIcons/explore.png')}
+          renderingMode="template"
+        />
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="community">
+        <NativeTabs.Trigger.Label>Community</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon
+          sf="bubble.left.and.bubble.right"
+          md="forum"
+          src={require('@/assets/images/tabIcons/explore.png')}
+          renderingMode="template"
+        />
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="wallet">
+        <NativeTabs.Trigger.Label>Wallet</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon
+          sf="wallet.pass"
+          md="wallet"
           src={require('@/assets/images/tabIcons/home.png')}
           renderingMode="template"
         />

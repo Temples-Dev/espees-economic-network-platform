@@ -126,6 +126,13 @@ class Api {
     return this.request(path) as Promise<T>;
   }
 
+  /** GET a DRF list endpoint. Unwraps the paginated `{results: [...]}` envelope. */
+  async getList<T>(path: string): Promise<T[]> {
+    const data = await this.get<{ results?: T[] } | T[]>(path);
+    if (Array.isArray(data)) return data;
+    return data.results ?? [];
+  }
+
   post<T = unknown>(path: string, body: unknown): Promise<T> {
     return this.request(path, {
       method: 'POST',
