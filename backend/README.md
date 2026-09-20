@@ -74,6 +74,9 @@ Authentication uses JWT (simplejwt). Protected endpoints expect `Authorization: 
 | `POST` | `/api/v1/campaigns/{id}/updates/` · `/milestones/` | Post an update / add a milestone (creator only) |
 | `GET` | `/api/v1/campaigns/{id}/` | Transparency: `raised_espees`, `contribution_count`, `disbursed_espees`, milestones, updates |
 | `PATCH` | `/api/v1/campaign-milestones/{id}/` | Mark a milestone achieved/disbursed (creator only) |
+| `GET` | `/api/v1/notifications/` | Your in-app notifications — filter: `unread=true` |
+| `POST` | `/api/v1/notifications/{id}/read/` · `/read-all/` | Mark notification(s) read |
+| `GET`/`PATCH` | `/api/v1/notification-preferences/` | Channel toggles (`in_app`, `email`, `push`, `sms`) |
 | `GET` | `/api/v1/health/` | Service health |
 | `GET` | `/admin/` | Django admin |
 

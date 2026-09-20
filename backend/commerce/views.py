@@ -103,6 +103,14 @@ class OrderViewSet(viewsets.ModelViewSet):
             return Response(
                 {'business': ['Business not found.']}, status=status.HTTP_400_BAD_REQUEST
             )
+        from notifications.services import notify_business_managers
+        notify_business_managers(
+            order.business,
+            'commerce',
+            'New order',
+            f'New order {order.pk} received for {order.total} Espees.',
+            target=order,
+        )
         return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['patch'], url_path='status')

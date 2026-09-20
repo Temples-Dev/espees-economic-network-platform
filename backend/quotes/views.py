@@ -94,6 +94,14 @@ class QuoteViewSet(viewsets.ModelViewSet):
         write = QuoteWriteSerializer(data=request.data, context=self.get_serializer_context())
         write.is_valid(raise_exception=True)
         instance = write.save()
+        from notifications.services import notify_business_managers
+        notify_business_managers(
+            instance.request.requesting_business,
+            'commerce',
+            'New quote',
+            f'{instance.supplier_business.name} quoted {instance.amount_espees} Espees on "{instance.request.title}".',
+            target=instance.request,
+        )
         return Response(QuoteSerializer(instance, context=self.get_serializer_context()).data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['post'], url_path='accept')

@@ -94,6 +94,14 @@ class CampaignViewSet(viewsets.ModelViewSet):
         if raised >= campaign.goal_espees and campaign.status == Campaign.Status.ACTIVE:
             campaign.status = Campaign.Status.COMPLETED
             campaign.save(update_fields=['status', 'updated_at'])
+        from notifications.services import notify
+        notify(
+            campaign.creator,
+            'campaign',
+            'New contribution',
+            f'{request.user.email} contributed {contribution.amount_espees} Espees to "{campaign.title}".',
+            target=campaign,
+        )
         out = CampaignContributionSerializer(contribution, context=self.get_serializer_context())
         return Response(out.data, status=status.HTTP_201_CREATED)
 

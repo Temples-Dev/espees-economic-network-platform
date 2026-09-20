@@ -68,6 +68,14 @@ class ConversationViewSet(viewsets.ModelViewSet):
             sender=request.user,
             body=serializer.validated_data['body'],
         )
+        from notifications.services import notify
+        notify(
+            conversation.other_party,
+            'communication',
+            'New message',
+            f'{request.user.full_name or request.user.email}: {message.body[:80]}',
+            target=conversation,
+        )
         return Response(
             MessageSerializer(message, context=self.get_serializer_context()).data,
             status=status.HTTP_201_CREATED,

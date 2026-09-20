@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'conversations',
     'quotes',
     'campaigns',
+    'notifications',
 ]
 
 MIDDLEWARE = [
