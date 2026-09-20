@@ -1,10 +1,15 @@
 import logging
 
+from django.contrib.auth import authenticate
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.contrib.auth.password_validation import validate_password
 from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 
-from . import services
+from . import security, services
 from .models import User, Wallet
 from .serializers import RegisterSerializer, UserSerializer
 
@@ -30,6 +35,130 @@ class RegisterView(APIView):
 
         user = User.objects.select_related('wallet').get(pk=user.pk)
         return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
+
+
+class LoginView(APIView):
+    """Authenticate with lockout protection and new-device security signalling.
+
+    Emits the same token shape as Simple JWT's default login so clients are
+    unaffected. Failed attempts are recorded for temporary lockout; successful
+    sign-ins from an unfamiliar device context raise a security notification.
+    """
+
+    permission_classes = [permissions.AllowAny]
+    http_method_names = ['post']
+
+    def post(self, request):
+        email = (request.data.get('email') or '').strip()
+        password = request.data.get('password') or ''
+        if not email or not password:
+            return Response(
+                {'detail': 'Email and password are required.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        locked, retry_after = security.is_locked(email)
+        if locked:
+            return Response(
+                {'detail': 'Too many failed attempts. Try again later.', 'retry_after': retry_after},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+
+        user = authenticate(request, username=email, password=password)
+        if user is None:
+            security.record_login_attempt(email, request, success=False)
+            return Response(
+                {'detail': 'No active account found with the given credentials.'},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        # Detect a new device BEFORE recording today's success, otherwise the
+        # just-written row makes every login look like a known device.
+        key = security.device_key(request)
+        new_device = security.is_new_device(user, key)
+        security.record_login_attempt(email, request, success=True, user=user)
+        if new_device:
+            security.notify_security(
+                user,
+                'New device sign-in',
+                'We detected a sign-in from a new device or browser.',
+            )
+
+        refresh = RefreshToken.for_user(user)
+        return Response({'refresh': str(refresh), 'access': str(refresh.access_token)})
+
+
+class LogoutView(APIView):
+    """Blacklist the presented refresh token to revoke the session."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        refresh_token = request.data.get('refresh')
+        try:
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+        except Exception:
+            return Response(
+                {'detail': 'Invalid refresh token.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ChangePasswordView(APIView):
+    """Change the account password and sign out all other sessions."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        old_password = request.data.get('old_password') or ''
+        new_password = request.data.get('new_password') or ''
+
+        if not request.user.check_password(old_password):
+            return Response(
+                {'detail': 'Current password is incorrect.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            validate_password(new_password, user=request.user)
+        except DjangoValidationError as exc:
+            return Response({'detail': exc.messages}, status=status.HTTP_400_BAD_REQUEST)
+
+        request.user.set_password(new_password)
+        request.user.save(update_fields=['password', 'updated_at'])
+
+        for outstanding in OutstandingToken.objects.filter(user=request.user):
+            BlacklistedToken.objects.get_or_create(token=outstanding)
+
+        security.notify_security(
+            request.user,
+            'Password changed',
+            'Your password was changed. All other sessions have been signed out.',
+        )
+        return Response(
+            {'detail': 'Password updated. All other sessions were signed out.'},
+            status=status.HTTP_200_OK,
+        )
+
+
+class SessionsView(APIView):
+    """Recent successful sign-in activity for audit."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        activities = request.user.login_activity.filter(success=True)[:20]
+        data = [
+            {
+                'device_key': a.device_key,
+                'ip_address': a.ip_address,
+                'user_agent': a.user_agent,
+                'created_at': a.created_at,
+            }
+            for a in activities
+        ]
+        return Response({'sessions': data})
 
 
 class MeView(APIView):

@@ -1,0 +1,34 @@
+Recommended Brand System
+
+Primary
+
+🔵 #18379C — Royal Blue
+🔵 #0B298E — Deep Blue
+
+Secondary
+
+🟡 #DABF79 — Champagne/Metallic Gold
+🟤 #836B58 — Bronze Gold
+
+Typography
+
+⚫ #313131 — Primary text
+🔷 #293D48 — Secondary/brand text
+⚪ #676767 — Body text
+
+Backgrounds
+
+#F6F6F6 — Primary light background
+#FFFFFF — Clean white
+
+
+The overall visual direction
+
+I would define the palette as:
+
+Royal Blue + Champagne Gold + Charcoal + Off-White
+
+
+A particularly good combination for future flyers would be:
+
+#18379C + #DABF79 + #F6F6F6 + #313131

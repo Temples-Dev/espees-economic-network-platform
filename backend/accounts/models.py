@@ -94,3 +94,38 @@ class Wallet(models.Model):
 
     def __str__(self):
         return f'Wallet of {self.user.email} ({self.status})'
+
+
+class LoginActivity(models.Model):
+    """An authentication attempt (successful or not) for lockout and session audit.
+
+    Sensitive authentication events (spec §21, §97) are surfaced to the member
+    through security notifications.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='login_activity',
+    )
+    email = models.EmailField(default='')
+    success = models.BooleanField(default=False)
+    device_key = models.CharField(max_length=64, default='')
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.CharField(max_length=512, blank=True, default='')
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name_plural = 'login activities'
+        indexes = [
+            models.Index(fields=['email', 'created_at']),
+            models.Index(fields=['user', 'device_key']),
+        ]
+
+    def __str__(self):
+        return f'{self.email}: {"ok" if self.success else "failed"} @ {self.device_key[:12]}'

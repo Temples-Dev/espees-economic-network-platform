@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
-from .models import Profile, User, Wallet
+from .models import LoginActivity, Profile, User, Wallet
 
 
 @admin.register(User)
@@ -37,3 +37,11 @@ class WalletAdmin(admin.ModelAdmin):
     list_display = ['user', 'espees_wallet_id', 'status', 'created_at']
     list_filter = ['status']
     search_fields = ['user__email', 'espees_wallet_id']
+
+
+@admin.register(LoginActivity)
+class LoginActivityAdmin(admin.ModelAdmin):
+    list_display = ['email', 'success', 'device_key', 'ip_address', 'created_at']
+    list_filter = ['success', 'created_at']
+    search_fields = ['email', 'device_key', 'ip_address']
+    readonly_fields = ['email', 'user', 'success', 'device_key', 'ip_address', 'user_agent', 'created_at']
