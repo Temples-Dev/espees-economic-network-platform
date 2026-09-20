@@ -36,6 +36,10 @@ class Api {
     localStorage.removeItem(REFRESH_KEY);
   }
 
+  getRefreshToken(): string | null {
+    return this.refresh ?? localStorage.getItem(REFRESH_KEY);
+  }
+
   private async tryRefresh(): Promise<boolean> {
     const refresh = this.refresh ?? localStorage.getItem(REFRESH_KEY);
     if (!refresh) return false;
@@ -95,6 +99,43 @@ class Api {
       body: JSON.stringify(body),
     }) as Promise<T>;
   }
+
+  patch<T = unknown>(path: string, body: unknown): Promise<T> {
+    return this.request(path, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }) as Promise<T>;
+  }
+
+  del<T = unknown>(path: string): Promise<T> {
+    return this.request(path, { method: "DELETE" }) as Promise<T>;
+  }
+
+  /** GET a DRF list endpoint. Unwraps the paginated `{results: [...]}` envelope. */
+  async getList<T>(path: string): Promise<T[]> {
+    const data = await this.get<{ results?: T[] } | T[]>(path);
+    if (Array.isArray(data)) return data;
+    return data.results ?? [];
+  }
 }
 
 export const api = new Api();
+
+/** Human-readable message from an API failure. DRF ships `detail` as a
+ * string or a list of strings, sometimes nested one level deep. */
+export function errorMessage(err: unknown, fallback: string): string {
+  if (err instanceof ApiError) {
+    const detail = err.detail as
+      | { detail?: string | string[] }
+      | string
+      | string[]
+      | null
+      | undefined;
+    if (typeof detail === "string") return detail;
+    if (Array.isArray(detail)) return detail.join(", ");
+    const inner = detail?.detail;
+    if (typeof inner === "string") return inner;
+    if (Array.isArray(inner)) return inner.join(", ");
+  }
+  return fallback;
+}

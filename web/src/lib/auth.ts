@@ -5,6 +5,7 @@ export type User = {
   email: string;
   full_name: string;
   is_verified: boolean;
+  is_staff: boolean;
   wallet: { espees_wallet_id: string; status: string } | null;
 };
 
