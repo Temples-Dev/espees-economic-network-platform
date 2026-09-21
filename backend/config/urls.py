@@ -3,6 +3,7 @@ URL configuration for the Espees Economic Network Platform backend.
 """
 from django.conf import settings
 from django.contrib import admin
+from django.conf.urls.static import static
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
@@ -21,3 +22,6 @@ urlpatterns = [
     path(f'{settings.API_PREFIX}/', include('campaigns.urls')),
     path(f'{settings.API_PREFIX}/', include('notifications.urls')),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

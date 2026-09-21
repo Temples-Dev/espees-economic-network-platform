@@ -3,6 +3,7 @@ Django settings for the Espees Economic Network Platform backend.
 """
 
 from datetime import timedelta
+import sys
 from pathlib import Path
 
 import environ
@@ -129,9 +130,19 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Custom user model — set before the first migration that references it
 AUTH_USER_MODEL = 'accounts.User'
 
+# Fast, insecure hasher while running the test suite only (password hashing dominates test time).
+if len(sys.argv) > 1 and sys.argv[1] == 'test':
+    PASSWORD_HASHERS = ['django.contrib.auth.hashers.MD5PasswordHasher']
+
 # Media
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+MAX_IMAGE_UPLOAD_BYTES = 5 * 1024 * 1024
+
+# Sign-in, sign-up and reset endpoints: attempts per IP (DRF rate syntax).
+AUTH_THROTTLE_RATE = env('AUTH_THROTTLE_RATE', default='20/min')
+if len(sys.argv) > 1 and sys.argv[1] == 'test':
+    AUTH_THROTTLE_RATE = '10000/min'
 
 # ----- Espees Platform Configuration -----
 
