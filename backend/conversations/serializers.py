@@ -1,3 +1,5 @@
+import uuid
+
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
@@ -37,6 +39,8 @@ class ConversationSerializer(serializers.ModelSerializer):
     campaign_title = serializers.CharField(source='campaign.title', read_only=True, default=None)
     last_message_at = serializers.SerializerMethodField()
     unread_count = serializers.SerializerMethodField()
+    last_message = serializers.SerializerMethodField()
+    last_message_sender = serializers.SerializerMethodField()
 
     class Meta:
         model = Conversation
@@ -51,6 +55,8 @@ class ConversationSerializer(serializers.ModelSerializer):
             'campaign',
             'campaign_title',
             'last_message_at',
+            'last_message',
+            'last_message_sender',
             'unread_count',
             'created_at',
         ]
@@ -73,6 +79,14 @@ class ConversationSerializer(serializers.ModelSerializer):
     def get_unread_count(self, obj):
         return getattr(obj, 'unread_count', 0)
 
+    def get_last_message(self, obj):
+        body = getattr(obj, 'last_message_body', None)
+        return body[:120] if body else None
+
+    def get_last_message_sender(self, obj):
+        sender_id = getattr(obj, 'last_message_sender_id', None)
+        return str(uuid.UUID(str(sender_id))) if sender_id else None
+
 
 class ConversationDetailSerializer(ConversationSerializer):
     messages = serializers.SerializerMethodField()
@@ -88,7 +102,8 @@ class ConversationDetailSerializer(ConversationSerializer):
 
 
 class ConversationCreateSerializer(serializers.Serializer):
-    other_party = serializers.UUIDField()
+    # Optional when `business` is given: the conversation then goes to the business owner.
+    other_party = serializers.UUIDField(required=False)
     business = serializers.UUIDField(required=False)
     order = serializers.UUIDField(required=False)
     campaign = serializers.UUIDField(required=False)
@@ -126,6 +141,15 @@ class ConversationCreateSerializer(serializers.Serializer):
                 attrs['business'] = Business.objects.get(pk=business_id)
             except Business.DoesNotExist:
                 raise serializers.ValidationError({'business': 'Business not found.'})
+        if 'other_party' not in attrs:
+            business = attrs.get('business')
+            if business is None:
+                raise serializers.ValidationError({'other_party': 'This field is required.'})
+            if business.owner_id == request.user.id:
+                raise serializers.ValidationError(
+                    {'business': 'You cannot start a conversation with your own business.'}
+                )
+            attrs['other_party'] = business.owner_id
         campaign_id = attrs.get('campaign')
         if campaign_id:
             from campaigns.models import Campaign

@@ -49,6 +49,40 @@ class ConversationApiTests(APITestCase):
         resp = self.client.post(self.list_url(), {'other_party': str(self.alice.id)}, format='json')
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
 
+    def test_business_alone_reaches_the_owner(self):
+        self.client.force_authenticate(user=self.alice)
+        resp = self.client.post(self.list_url(), {'business': str(self.business.id)}, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(resp.data['other_party']['email'], 'bob@example.com')
+        self.assertEqual(str(resp.data['business']), str(self.business.id))
+
+    def test_business_thread_is_reused(self):
+        self.client.force_authenticate(user=self.alice)
+        payload = {'business': str(self.business.id)}
+        first = self.client.post(self.list_url(), payload, format='json')
+        second = self.client.post(self.list_url(), payload, format='json')
+        self.assertEqual(first.data['id'], second.data['id'])
+        self.assertEqual(Conversation.objects.count(), 1)
+
+    def test_owner_cannot_message_their_own_business(self):
+        self.client.force_authenticate(user=self.bob)
+        resp = self.client.post(self.list_url(), {'business': str(self.business.id)}, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(Conversation.objects.count(), 0)
+
+    def test_unknown_business_is_rejected(self):
+        self.client.force_authenticate(user=self.alice)
+        resp = self.client.post(
+            self.list_url(), {'business': '00000000-0000-0000-0000-000000000000'}, format='json'
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_other_party_is_still_required_without_a_business(self):
+        self.client.force_authenticate(user=self.alice)
+        resp = self.client.post(self.list_url(), {}, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('other_party', resp.data)
+
     def test_direct_thread_is_reused(self):
         self.client.force_authenticate(user=self.alice)
         payload = {'other_party': str(self.bob.id)}
@@ -135,6 +169,18 @@ class ConversationApiTests(APITestCase):
         results = listing.data['results']
         self.assertEqual(results[0]['id'], str(conv.id))
         self.assertEqual(results[0]['unread_count'], 1)
+
+    def test_list_includes_last_message_preview_and_sender(self):
+        conv = Conversation.objects.create(initiator=self.alice, other_party=self.bob)
+        empty = Conversation.objects.create(initiator=self.alice, other_party=self.carol)
+        self.client.force_authenticate(user=self.alice)
+        self.client.post(self.messages_url(conv), {'body': 'first'}, format='json')
+        self.client.post(self.messages_url(conv), {'body': 'x' * 200}, format='json')
+        results = {r['id']: r for r in self.client.get(self.list_url()).data['results']}
+        self.assertEqual(results[str(conv.id)]['last_message'], 'x' * 120)
+        self.assertEqual(results[str(conv.id)]['last_message_sender'], str(self.alice.id))
+        self.assertIsNone(results[str(empty.id)]['last_message'])
+        self.assertIsNone(results[str(empty.id)]['last_message_sender'])
 
     def setUpCampaign(self, title='School Roof'):
         return Campaign.objects.create(creator=self.bob, title=title, goal_espees='5000.00', status=Campaign.Status.ACTIVE)

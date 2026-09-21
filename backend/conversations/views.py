@@ -1,4 +1,4 @@
-from django.db.models import Count, Max, Prefetch, Q
+from django.db.models import Count, Max, OuterRef, Prefetch, Q, Subquery
 from django.utils import timezone
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
@@ -28,7 +28,10 @@ class ConversationViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         qs = super().get_queryset().filter(Q(initiator=user) | Q(other_party=user))
+        latest = Message.objects.filter(conversation=OuterRef('pk')).order_by('-created_at')
         qs = qs.annotate(
+            last_message_body=Subquery(latest.values('body')[:1]),
+            last_message_sender_id=Subquery(latest.values('sender_id')[:1]),
             last_message_at=Max('messages__created_at'),
             unread_count=Count(
                 'messages',
