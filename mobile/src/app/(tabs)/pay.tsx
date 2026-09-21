@@ -1,33 +1,44 @@
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, View } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { SearchBar, SegmentTabs, StateMessage } from '@/components/discover-parts';
+import { EmptyNote, HomeSectionHeader, Skeleton } from '@/components/home-parts';
+import { BasketCard, PaymentRow, PayOfferingRow } from '@/components/pay-parts';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import {
-  AuthGate,
-  Card,
-  ErrorText,
-  Field,
-  ListCard,
-  NoticeText,
-  PrimaryButton,
-  Screen,
-  SectionHeader,
-} from '@/components/ui';
-import { Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
+import { AuthGate } from '@/components/ui';
+import { Brand, MaxContentWidth, Spacing, TabBar } from '@/constants/theme';
 import { api, errorMessage } from '@/lib/api';
+import {
+  basketSummary,
+  clampQuantity,
+  filterByKind,
+  formatEsp,
+  groupByBusiness,
+  matchesOffering,
+  type Basket,
+  type KindFilter,
+} from '@/lib/pay';
 import type { Offering, Order } from '@/lib/types';
 
+const KINDS = [
+  { id: 'all', label: 'All', icon: 'apps-outline' },
+  { id: 'product', label: 'Products', icon: 'cube-outline' },
+  { id: 'service', label: 'Services', icon: 'construct-outline' },
+] as const;
+
 function PayBody() {
-  const theme = useTheme();
+  const router = useRouter();
   const [offerings, setOfferings] = useState<Offering[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [quantity, setQuantity] = useState('1');
   const [orders, setOrders] = useState<Order[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [kind, setKind] = useState<KindFilter>('all');
+  const [query, setQuery] = useState('');
+  const [basket, setBasket] = useState<Basket>({});
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [problems, setProblems] = useState<string[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -40,7 +51,9 @@ function PayBody() {
       setOfferings([...p, ...s].filter((x) => x.is_active));
       setOrders(o);
     } catch (err) {
-      setError(errorMessage(err, 'Could not load offerings.'));
+      setProblems([errorMessage(err, 'Could not load offerings.')]);
+    } finally {
+      setLoaded(true);
     }
   }, []);
 
@@ -50,109 +63,164 @@ function PayBody() {
     }, [load]),
   );
 
-  const selected = offerings.find((o) => o.id === selectedId) ?? null;
-  const qty = Math.max(1, parseInt(quantity, 10) || 1);
-  const total = selected ? (parseFloat(selected.price) || 0) * qty : 0;
-
-  async function submit() {
-    if (!selected) {
-      setError('Choose an offering first.');
-      return;
-    }
-    setError(null);
-    setNotice(null);
-    setBusy(true);
-    try {
-      const order = await api.post<Order>('/api/v1/orders/', {
-        business: selected.business,
-        items: [{ offering: selected.id, quantity: qty }],
-      });
-      setNotice(`Payment confirmed: ${order.total} Espees · ${order.status}.`);
-      setSelectedId(null);
-      setQuantity('1');
-      setOrders(await api.getList<Order>('/api/v1/orders/'));
-    } catch (err) {
-      setError(errorMessage(err, 'Payment failed.'));
-    } finally {
-      setBusy(false);
-    }
+  async function refresh() {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
   }
 
+  const summary = basketSummary(offerings, basket);
+  const visible = filterByKind(offerings, kind).filter((o) => matchesOffering(o, query));
+
+  function toggle(o: Offering) {
+    setNotice(null);
+    setProblems([]);
+    setBasket((b) => {
+      const { [o.id]: had, ...rest } = b;
+      return had ? rest : { ...b, [o.id]: 1 };
+    });
+  }
+
+  function setQuantity(o: Offering, n: number) {
+    setBasket((b) => ({ ...b, [o.id]: clampQuantity(n) }));
+  }
+
+  /** One order per business; whatever succeeds leaves the basket, whatever fails stays for a retry. */
+  async function pay() {
+    setProblems([]);
+    setNotice(null);
+    setBusy(true);
+    const paid: string[] = [];
+    const failed: string[] = [];
+    let remaining = { ...basket };
+    for (const group of groupByBusiness(offerings, basket)) {
+      try {
+        await api.post<Order>('/api/v1/orders/', { business: group.businessId, items: group.items });
+        paid.push(`${formatEsp(group.subtotal)} to ${group.businessName}`);
+        for (const item of group.items) delete remaining[item.offering];
+      } catch (err) {
+        failed.push(`${group.businessName}: ${errorMessage(err, 'Payment failed.')}`);
+      }
+    }
+    setBasket(remaining);
+    if (paid.length) {
+      setNotice(`Payment sent: ${paid.join(', ')}.`);
+      try {
+        setOrders(await api.getList<Order>('/api/v1/orders/'));
+      } catch {
+        /* the next refresh will reconcile */
+      }
+    }
+    setProblems(failed);
+    setBusy(false);
+  }
+
+  const now = new Date();
+  const searching = query.trim().length > 0;
+
   return (
-    <>
-      <ThemedText type="subtitle">Pay</ThemedText>
-      <ThemedText themeColor="textSecondary">
-        Choose an offering, review the total, and confirm.
-      </ThemedText>
+    <View style={styles.root}>
+      <SafeAreaView edges={['top']} style={styles.safe}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={styles.scroll}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => void refresh()}
+              tintColor={Brand.gold}
+              colors={[Brand.royal]}
+            />
+          }>
+          <View style={styles.heading}>
+            <ThemedText style={styles.title}>Pay</ThemedText>
+            <ThemedText style={styles.subtitle}>Pick one or several things, from any business, and pay at once.</ThemedText>
+          </View>
 
-      <SectionHeader title="Offerings" />
-      {offerings.slice(0, 12).map((o) => {
-        const active = o.id === selectedId;
-        return (
-          <Pressable key={o.id} onPress={() => setSelectedId(active ? null : o.id)}>
-            <ThemedView
-              type="backgroundElement"
-              style={{
-                borderWidth: active ? 2 : 0,
-                borderColor: theme.primary,
-                borderRadius: Spacing.three,
-              }}>
-              <ListCard
-                title={`${active ? '✓ ' : ''}${o.name}`}
-                pill={o.kind}
-                meta={[`${o.business_name} · ${o.price} Espees`]}
-              />
-            </ThemedView>
-          </Pressable>
-        );
-      })}
-      {offerings.length === 0 && (
-        <ThemedText type="small" themeColor="textSecondary">
-          No active offerings right now.
-        </ThemedText>
-      )}
-
-      <View style={{ flexDirection: 'row', gap: Spacing.two }}>
-        <View style={{ flex: 1 }}>
-          <Field label="Quantity" keyboardType="numeric" value={quantity} onChangeText={setQuantity} />
-        </View>
-        <View style={{ flex: 2, justifyContent: 'flex-end' }}>
-          <Card>
-            <ThemedText type="small" themeColor="textSecondary">
-              Total
+          <BasketCard
+            count={summary.count}
+            businesses={summary.businesses}
+            total={summary.total}
+            busy={busy}
+            onClear={() => setBasket({})}
+            onPay={() => void pay()}
+          />
+          {problems.map((p) => (
+            <ThemedText key={p} style={styles.error}>
+              {p}
             </ThemedText>
-            <ThemedText type="smallBold">{total.toFixed(2)} Espees</ThemedText>
-          </Card>
-        </View>
-      </View>
+          ))}
+          {!!notice && <ThemedText style={styles.notice}>{notice}</ThemedText>}
 
-      <ErrorText message={error} />
-      <NoticeText message={notice} />
-      <PrimaryButton
-        tone="gold"
-        title={busy ? 'Processing…' : 'Confirm payment'}
-        onPress={() => void submit()}
-        disabled={busy || !selected}
-      />
+          <View style={styles.block}>
+            <HomeSectionHeader title="What are you paying for?" />
+            <SearchBar value={query} onChange={setQuery} placeholder="Search products, services, businesses" />
+            <SegmentTabs options={KINDS} value={kind} onChange={setKind} />
+            {!loaded ? (
+              <Skeleton rows={3} />
+            ) : visible.length === 0 ? (
+              <StateMessage
+                icon="search-outline"
+                title={searching ? 'No matches' : 'Nothing to pay for yet'}
+                action={searching ? { label: 'Clear search', onPress: () => setQuery('') } : undefined}
+              />
+            ) : (
+              <View style={styles.list}>
+                {visible.slice(0, 30).map((o) => (
+                  <PayOfferingRow
+                    key={o.id}
+                    offering={o}
+                    quantity={basket[o.id] ?? 0}
+                    onToggle={() => toggle(o)}
+                    onQuantity={(n) => setQuantity(o, n)}
+                  />
+                ))}
+              </View>
+            )}
+          </View>
 
-      <SectionHeader title={`Recent payments (${orders.length})`} />
-      {orders.slice(0, 5).map((o) => (
-        <ListCard
-          key={o.id}
-          title={`${o.total} Espees · ${o.status}`}
-          meta={[`${o.business_name} · ${new Date(o.created_at).toLocaleDateString()}`]}
-        />
-      ))}
-    </>
+          <View style={styles.block}>
+            <HomeSectionHeader
+              title="Recent payments"
+              action={{ label: 'See all transactions', onPress: () => router.push('/transactions') }}
+            />
+            {!loaded ? (
+              <Skeleton rows={2} />
+            ) : orders.length === 0 ? (
+              <EmptyNote message="No payments yet." />
+            ) : (
+              orders.slice(0, 5).map((o) => <PaymentRow key={o.id} order={o} now={now} />)
+            )}
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 }
 
 export default function PayScreen() {
   return (
     <AuthGate title="Pay" blurb="Sign in to pay businesses in Espees.">
-      <Screen>
-        <PayBody />
-      </Screen>
+      <PayBody />
     </AuthGate>
   );
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: Brand.paper, alignItems: 'center' },
+  safe: { flex: 1, width: '100%', maxWidth: MaxContentWidth },
+  scroll: {
+    paddingHorizontal: Spacing.four,
+    paddingTop: Spacing.three,
+    paddingBottom: TabBar.clearance,
+    gap: Spacing.four,
+  },
+  heading: { gap: 2 },
+  title: { fontSize: 28, lineHeight: 34, fontWeight: '800', color: Brand.ink },
+  subtitle: { fontSize: 14, color: Brand.body },
+  block: { gap: Spacing.three },
+  list: { gap: Spacing.two + 2 },
+  error: { color: '#B0382B', fontSize: 14, fontWeight: '600' },
+  notice: { color: '#1F7A4D', fontSize: 14, fontWeight: '600' },
+});
