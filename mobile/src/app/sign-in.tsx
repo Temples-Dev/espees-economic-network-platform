@@ -1,28 +1,19 @@
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { Pressable } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import {
-  Card,
-  ErrorText,
-  Field,
-  Hero,
-  Loading,
-  NoticeText,
-  OutlineButton,
-  PrimaryButton,
-  Screen,
-} from '@/components/ui';
-import { Brand, Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
+import { AuthField, AuthPasswordField, AuthShell } from '@/components/auth-ui';
+import { ErrorText, Loading, NoticeText, OutlineButton, PrimaryButton } from '@/components/ui';
+import { Brand } from '@/constants/theme';
+import { SocialAuthRow } from '@/components/social-auth-row';
 import { api, errorMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import { isValidEmail } from '@/lib/validation';
 
 export default function SignInScreen() {
-  const { loading, login, loginWithCode, needsCode, register } = useAuth();
-  const theme = useTheme();
-  const [mode, setMode] = useState<'login' | 'register'>('login');
+  const { loading, login, loginWithCode, needsCode } = useAuth();
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
@@ -32,18 +23,17 @@ export default function SignInScreen() {
   const [error, setError] = useState<string | null>(null);
 
   async function submit() {
+    if (!email.trim() || !password) {
+      setError('Enter your email and password.');
+      return;
+    }
     setError(null);
     setBusy(true);
     try {
-      if (mode === 'login') {
-        await login(email.trim(), password);
-      } else {
-        await register({ email: email.trim(), password });
-        await login(email.trim(), password);
-      }
+      await login(email.trim(), password);
       // AuthRedirect in the root layout moves the user into /(tabs).
     } catch (err) {
-      setError(errorMessage(err, mode === 'login' ? 'Sign-in failed.' : 'Sign-up failed.'));
+      setError(errorMessage(err, 'Sign-in failed.'));
     } finally {
       setBusy(false);
     }
@@ -63,6 +53,10 @@ export default function SignInScreen() {
   }
 
   async function submitReset() {
+    if (!isValidEmail(email)) {
+      setError('Enter a valid email address.');
+      return;
+    }
     setError(null);
     setBusy(true);
     try {
@@ -79,121 +73,121 @@ export default function SignInScreen() {
 
   if (showReset) {
     return (
-      <Screen>
-        <Hero title="Reset your" accent="password" copy="Enter your account email for a reset link." />
-        <Card>
-          {resetSent ? (
-            <NoticeText message="If the account exists, a reset email has been sent." />
-          ) : (
-            <>
-              <Field
-                label="Email"
-                autoCapitalize="none"
-                keyboardType="email-address"
-                value={email}
-                onChangeText={setEmail}
-              />
-              <ErrorText message={error} />
-              <PrimaryButton
-                tone="gold"
-                title={busy ? 'Sending…' : 'Send reset link'}
-                onPress={() => void submitReset()}
-                disabled={busy}
-              />
-            </>
-          )}
-          <OutlineButton
-            title="Back to sign-in"
-            onPress={() => {
-              setShowReset(false);
-              setResetSent(false);
-              setError(null);
-            }}
-          />
-        </Card>
-      </Screen>
+      <AuthShell
+        title="Reset your"
+        accent="password"
+        subtitle="Enter your account email and we'll send a reset link.">
+        {resetSent ? (
+          <NoticeText message="If the account exists, a reset email has been sent." />
+        ) : (
+          <>
+            <AuthField
+              label="Email"
+              icon="mail-outline"
+              autoCapitalize="none"
+              keyboardType="email-address"
+              value={email}
+              onChangeText={setEmail}
+            />
+            <ErrorText message={error} />
+            <PrimaryButton
+              tone="gold"
+              title={busy ? 'Sending…' : 'Send reset link'}
+              onPress={() => void submitReset()}
+              disabled={busy}
+            />
+          </>
+        )}
+        <OutlineButton
+          title="Back to sign-in"
+          onPress={() => {
+            setShowReset(false);
+            setResetSent(false);
+            setError(null);
+          }}
+        />
+      </AuthShell>
     );
   }
 
   if (needsCode) {
     return (
-      <Screen>
-        <Hero title="Check your" accent="authenticator" copy="Enter the 6-digit code to finish signing in." />
-        <Card>
-          <Field
-            label="Two-factor code"
-            keyboardType="numeric"
-            value={code}
-            onChangeText={setCode}
-          />
-          <ErrorText message={error} />
-          <PrimaryButton
-            tone="gold"
-            title={busy ? 'Verifying…' : 'Verify'}
-            onPress={() => void submitCode()}
-            disabled={busy}
-          />
-        </Card>
-      </Screen>
-    );
-  }
-
-  return (
-    <Screen>
-      <Hero
-        title="Espees Economic"
-        accent="Network"
-        copy="One account for businesses, payments, campaigns, and community."
-      />
-      <Card>
-        <View style={{ flexDirection: 'row', gap: Spacing.four }}>
-          {(['login', 'register'] as const).map((m) => (
-            <Pressable key={m} onPress={() => setMode(m)}>
-              <ThemedText
-                type="smallBold"
-                style={{ color: m === mode ? Brand.royal : theme.textSecondary }}>
-                {m === 'login' ? 'Sign in' : 'Create account'}
-              </ThemedText>
-            </Pressable>
-          ))}
-        </View>
-        <Field
-          label="Email"
-          autoCapitalize="none"
-          keyboardType="email-address"
-          value={email}
-          onChangeText={setEmail}
-        />
-        <Field
-          label={mode === 'login' ? 'Password' : 'Choose a password'}
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
+      <AuthShell
+        title="Check your"
+        accent="authenticator"
+        subtitle="Enter the 6-digit code to finish signing in.">
+        <AuthField
+          label="Two-factor code"
+          icon="shield-checkmark-outline"
+          keyboardType="numeric"
+          maxLength={6}
+          autoComplete="one-time-code"
+          value={code}
+          onChangeText={setCode}
         />
         <ErrorText message={error} />
         <PrimaryButton
           tone="gold"
-          title={busy ? 'Working…' : mode === 'login' ? 'Sign in' : 'Create account'}
-          onPress={() => void submit()}
+          title={busy ? 'Verifying…' : 'Verify'}
+          onPress={() => void submitCode()}
           disabled={busy}
         />
-        {mode === 'login' && (
-          <Pressable
-            onPress={() => {
-              setShowReset(true);
-              setError(null);
-            }}>
-            <ThemedText type="small" style={{ color: Brand.royal, textAlign: 'center' }}>
-              Forgot password?
+      </AuthShell>
+    );
+  }
+
+  return (
+    <AuthShell
+      title="Welcome"
+      accent="back"
+      subtitle="Sign in to your Espees Economic Network account."
+      footer={
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Create an account"
+          onPress={() => router.push('/register')}>
+          <ThemedText type="small" themeColor="textSecondary">
+            New to EENP?{' '}
+            <ThemedText type="small" style={{ color: Brand.royal, fontWeight: '700' }}>
+              Create an account
             </ThemedText>
-          </Pressable>
-        )}
-      </Card>
-      <ThemedView style={{ alignItems: 'center' }}>
-        <ThemedText type="small" themeColor="textSecondary">
-          Member trust network · secured sessions
+          </ThemedText>
+        </Pressable>
+      }>
+      <AuthField
+        label="Email"
+        icon="mail-outline"
+        autoCapitalize="none"
+        autoComplete="email"
+        keyboardType="email-address"
+        value={email}
+        onChangeText={setEmail}
+      />
+      <AuthPasswordField
+        label="Password"
+        autoComplete="current-password"
+        value={password}
+        onChangeText={setPassword}
+      />
+      <Pressable
+        accessibilityRole="button"
+        style={{ alignSelf: 'flex-end' }}
+        onPress={() => {
+          setShowReset(true);
+          setError(null);
+        }}>
+        <ThemedText type="small" style={{ color: Brand.royal, fontWeight: '600' }}>
+          Forgot password?
         </ThemedText>
-      </ThemedView>
-    </Screen>
+      </Pressable>
+      <ErrorText message={error} />
+      <PrimaryButton
+        tone="gold"
+        title={busy ? 'Signing in…' : 'Sign in'}
+        onPress={() => void submit()}
+        disabled={busy}
+      />
+      <SocialAuthRow />
+    </AuthShell>
   );
 }

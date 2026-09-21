@@ -1,148 +1,90 @@
-import { Image } from 'expo-image';
 import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
-import { Dimensions, StyleSheet, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import Animated, { Easing, Keyframe } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 
-const INITIAL_SCALE_FACTOR = Dimensions.get('screen').height / 90;
-const DURATION = 600;
+import { Brand, Spacing } from '@/constants/theme';
 
+const EXIT_DURATION = 500;
+
+const exitKeyframe = new Keyframe({
+  0: { opacity: 1, transform: [{ scale: 1 }] },
+  30: { opacity: 1 },
+  100: { opacity: 0, transform: [{ scale: 1.06 }], easing: Easing.out(Easing.cubic) },
+});
+
+function Wordmark() {
+  return (
+    <View style={styles.wordmark}>
+      <Image
+        accessibilityLabel="EENP logo"
+        source={require('@/assets/images/splash-icon.png')}
+        style={styles.logo}
+        resizeMode="contain"
+      />
+      <Text style={styles.tagline}>Espees Economic Network</Text>
+    </View>
+  );
+}
+
+/** Full-bleed royal splash. Covers the app until the native splash hands over, then fades out. */
 export function AnimatedSplashOverlay() {
-  const [animate, setAnimate] = useState(false);
+  const [handedOver, setHandedOver] = useState(false);
   const [visible, setVisible] = useState(true);
 
   if (!visible) return null;
 
-  const splashKeyframe = new Keyframe({
-    0: {
-      transform: [{ scale: 1 }],
-      opacity: 1,
-    },
-    20: {
-      opacity: 1,
-    },
-    70: {
-      opacity: 0,
-      easing: Easing.elastic(0.7),
-    },
-    100: {
-      opacity: 0,
-      transform: [{ scale: 1 }],
-      easing: Easing.elastic(0.7),
-    },
-  });
+  if (!handedOver) {
+    return (
+      <View
+        testID="splash-overlay"
+        onLayout={() => {
+          SplashScreen.hideAsync().finally(() => setHandedOver(true));
+        }}
+        style={styles.overlay}>
+        <StatusBar style="light" />
+        <Wordmark />
+      </View>
+    );
+  }
 
-  const image = <Image style={styles.image} source={require('@/assets/images/expo-logo.png')} />;
-
-  return animate ? (
-    <Animated.View
-      entering={splashKeyframe.duration(DURATION).withCallback((finished) => {
-        'worklet';
-        if (finished) {
-          scheduleOnRN(setVisible, false);
-        }
-      })}
-      style={styles.splashOverlay}>
-      {image}
-    </Animated.View>
-  ) : (
-    <View
-      onLayout={() => {
-        SplashScreen.hideAsync().finally(() => {
-          setAnimate(true);
-        });
-      }}
-      style={styles.splashOverlay}>
-      {image}
-    </View>
-  );
-}
-
-const keyframe = new Keyframe({
-  0: {
-    transform: [{ scale: INITIAL_SCALE_FACTOR }],
-  },
-  100: {
-    transform: [{ scale: 1 }],
-    easing: Easing.elastic(0.7),
-  },
-});
-
-const logoKeyframe = new Keyframe({
-  0: {
-    transform: [{ scale: 1.3 }],
-    opacity: 0,
-  },
-  40: {
-    transform: [{ scale: 1.3 }],
-    opacity: 0,
-    easing: Easing.elastic(0.7),
-  },
-  100: {
-    opacity: 1,
-    transform: [{ scale: 1 }],
-    easing: Easing.elastic(0.7),
-  },
-});
-
-const glowKeyframe = new Keyframe({
-  0: {
-    transform: [{ rotateZ: '0deg' }],
-  },
-  100: {
-    transform: [{ rotateZ: '7200deg' }],
-  },
-});
-
-export function AnimatedIcon() {
   return (
-    <View style={styles.iconContainer}>
-      <Animated.View entering={glowKeyframe.duration(60 * 1000 * 4)} style={styles.glow}>
-        <Image style={styles.glow} source={require('@/assets/images/logo-glow.png')} />
-      </Animated.View>
-
-      <Animated.View entering={keyframe.duration(DURATION)} style={styles.background} />
-      <Animated.View style={styles.imageContainer} entering={logoKeyframe.duration(DURATION)}>
-        <Image style={styles.image} source={require('@/assets/images/expo-logo.png')} />
-      </Animated.View>
-    </View>
+    <Animated.View
+      entering={exitKeyframe.duration(EXIT_DURATION).withCallback((finished) => {
+        'worklet';
+        if (finished) scheduleOnRN(setVisible, false);
+      })}
+      pointerEvents="none"
+      style={styles.overlay}>
+      <StatusBar style="light" />
+      <Wordmark />
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  imageContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  glow: {
-    width: 201,
-    height: 201,
-    position: 'absolute',
-  },
-  iconContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: 128,
-    height: 128,
-    zIndex: 100,
-  },
-  image: {
-    width: 76,
-    height: 71,
-  },
-  background: {
-    borderRadius: 40,
-    experimental_backgroundImage: `linear-gradient(180deg, #3C9FFE, #0274DF)`,
-    width: 128,
-    height: 128,
-    position: 'absolute',
-  },
-  splashOverlay: {
+  overlay: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: '#208AEF',
+    backgroundColor: Brand.deep,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1000,
+  },
+  wordmark: {
+    alignItems: 'center',
+    gap: Spacing.four,
+  },
+  logo: {
+    width: 220,
+    height: 188,
+  },
+  tagline: {
+    color: Brand.gold,
+    fontSize: 14,
+    fontWeight: '600',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
   },
 });
