@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
@@ -7,14 +8,31 @@ import {
   Card,
   ErrorText,
   Field,
+  ListCard,
   NoticeText,
-  OutlineButton,
   PrimaryButton,
   Screen,
+  SectionHeader,
+  SettingsRow,
 } from '@/components/ui';
+import { Brand, Spacing } from '@/constants/theme';
 import { api, errorMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import type { Order, Session } from '@/lib/types';
+
+function ProfileHeader({ name, email }: { name: string; email: string }) {
+  return (
+    <View style={styles.profile}>
+      <View style={styles.avatar}>
+        <ThemedText style={styles.avatarLabel}>{name.slice(0, 1).toUpperCase()}</ThemedText>
+      </View>
+      <View style={styles.profileText}>
+        <ThemedText style={styles.profileName}>{name}</ThemedText>
+        <ThemedText style={styles.profileEmail}>{email}</ThemedText>
+      </View>
+    </View>
+  );
+}
 
 function WalletBody() {
   const { user, logout } = useAuth();
@@ -74,14 +92,14 @@ function WalletBody() {
   }
 
   if (!user) return null;
+  const displayName = user.full_name || user.email;
 
   return (
     <>
-      <ThemedText type="subtitle">Wallet</ThemedText>
+      <ProfileHeader name={displayName} email={user.email} />
 
       <Card>
         <ThemedText type="smallBold">Espees wallet</ThemedText>
-        <ThemedText themeColor="textSecondary">{user.email}</ThemedText>
         <ThemedText type="small" themeColor="textSecondary">
           {user.wallet ? `${user.wallet.espees_wallet_id} · ${user.wallet.status}` : 'pending'}
         </ThemedText>
@@ -90,16 +108,14 @@ function WalletBody() {
         </ThemedText>
       </Card>
 
-      <ThemedText type="smallBold">Transaction history ({orders.length})</ThemedText>
-      {orders.slice(0, 10).map((o) => (
-        <Card key={o.id}>
-          <ThemedText type="smallBold">
-            {o.total} Espees · {o.status}
-          </ThemedText>
-          <ThemedText type="small" themeColor="textSecondary">
-            {o.business_name} · {new Date(o.created_at).toLocaleString()}
-          </ThemedText>
-        </Card>
+      <SectionHeader title={`Transactions (${orders.length})`} />
+      {orders.slice(0, 6).map((o) => (
+        <ListCard
+          key={o.id}
+          title={`${o.total} Espees`}
+          pill={o.status}
+          meta={[`${o.business_name} · ${new Date(o.created_at).toLocaleDateString()}`]}
+        />
       ))}
       {orders.length === 0 && (
         <ThemedText type="small" themeColor="textSecondary">
@@ -107,23 +123,19 @@ function WalletBody() {
         </ThemedText>
       )}
 
-      <ThemedText type="smallBold">Sign-in sessions</ThemedText>
+      <SectionHeader title="Sign-in sessions" />
       <ThemedText type="small" themeColor="textSecondary">
-        Recent successful sign-ins. Anything unfamiliar means someone else may have your
-        password.
+        Anything unfamiliar here means someone else may have your password.
       </ThemedText>
-      {sessions.slice(0, 10).map((s, i) => (
-        <Card key={`${s.device_key}-${s.created_at}-${i}`}>
-          <ThemedText type="smallBold">
-            Device {s.device_key ? s.device_key.slice(0, 12) : 'unknown'}
-          </ThemedText>
-          <ThemedText type="small" themeColor="textSecondary">
-            {s.ip_address ?? 'unknown IP'} · {new Date(s.created_at).toLocaleString()}
-          </ThemedText>
-          <ThemedText type="small" themeColor="textSecondary" numberOfLines={2}>
-            {s.user_agent || 'unknown browser'}
-          </ThemedText>
-        </Card>
+      {sessions.slice(0, 6).map((s, i) => (
+        <ListCard
+          key={`${s.device_key}-${s.created_at}-${i}`}
+          title={`Device ${s.device_key ? s.device_key.slice(0, 12) : 'unknown'}`}
+          meta={[
+            `${s.ip_address ?? 'unknown IP'} · ${new Date(s.created_at).toLocaleString()}`,
+            s.user_agent || 'unknown browser',
+          ]}
+        />
       ))}
       {sessions.length === 0 && (
         <ThemedText type="small" themeColor="textSecondary">
@@ -131,7 +143,7 @@ function WalletBody() {
         </ThemedText>
       )}
 
-      <ThemedText type="smallBold">Change password</ThemedText>
+      <SectionHeader title="Change password" />
       <ThemedText type="small" themeColor="textSecondary">
         Changing your password signs out all other sessions immediately.
       </ThemedText>
@@ -156,7 +168,9 @@ function WalletBody() {
         disabled={busy}
       />
 
-      <OutlineButton title="Sign out" color="#c0392b" onPress={() => void logout()} />
+      <Card>
+        <SettingsRow label="Sign out" glyph="↩" danger onPress={() => void logout()} />
+      </Card>
     </>
   );
 }
@@ -170,3 +184,40 @@ export default function WalletScreen() {
     </AuthGate>
   );
 }
+
+const styles = StyleSheet.create({
+  profile: {
+    backgroundColor: Brand.royal,
+    borderRadius: Spacing.four,
+    padding: Spacing.four,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three,
+  },
+  avatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarLabel: {
+    color: '#ffffff',
+    fontSize: 24,
+    fontWeight: '700',
+  },
+  profileText: {
+    flex: 1,
+    gap: 2,
+  },
+  profileName: {
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  profileEmail: {
+    color: 'rgba(255,255,255,0.75)',
+    fontSize: 13,
+  },
+});

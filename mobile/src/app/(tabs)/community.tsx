@@ -8,10 +8,12 @@ import {
   Card,
   ErrorText,
   Field,
+  ListCard,
   NoticeText,
   OutlineButton,
   PrimaryButton,
   Screen,
+  SectionHeader,
 } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { api, errorMessage } from '@/lib/api';
@@ -87,36 +89,33 @@ function CommunityBody() {
     <>
       <ThemedText type="subtitle">Community</ThemedText>
       <ThemedText themeColor="textSecondary">
-        Conversations stay attached to the business, order, or campaign they belong to.
+        Every conversation stays attached to its business, order, or campaign.
       </ThemedText>
 
+      <SectionHeader title={`Conversations (${convos.length})`} />
       {convos.map((c) => {
         const active = c.id === openId;
         const ctx = contextLine(c);
         return (
           <Pressable key={c.id} onPress={() => setOpenId(active ? null : c.id)}>
-            <Card>
-              <ThemedText type="smallBold" style={active ? { color: theme.primary } : undefined}>
-                {user ? otherName(c, user.id) : c.other_party.email}
-                {c.unread_count > 0 ? `  ·  ${c.unread_count} new` : ''}
-              </ThemedText>
-              {ctx && (
-                <ThemedText type="small" themeColor="textSecondary">
-                  {ctx}
-                </ThemedText>
-              )}
-              {!!c.last_message_at && (
-                <ThemedText type="small" themeColor="textSecondary">
-                  {new Date(c.last_message_at).toLocaleString()}
-                </ThemedText>
-              )}
-            </Card>
+            <ListCard
+              title={`${user ? otherName(c, user.id) : c.other_party.email}${c.unread_count > 0 ? `  ·  ${c.unread_count} new` : ''}`}
+              pill={ctx ?? undefined}
+              meta={
+                c.last_message_at ? [new Date(c.last_message_at).toLocaleString()] : undefined
+              }
+            />
           </Pressable>
         );
       })}
       {convos.length === 0 && (
         <ThemedText type="small" themeColor="textSecondary">
           No conversations yet.
+        </ThemedText>
+      )}
+      {convos.length > 0 && (
+        <ThemedText type="small" style={{ color: theme.primary }}>
+          Tap a conversation to reply.
         </ThemedText>
       )}
 

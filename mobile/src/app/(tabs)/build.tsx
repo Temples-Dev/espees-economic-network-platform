@@ -4,12 +4,13 @@ import { useFocusEffect } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import {
   AuthGate,
-  Card,
   ErrorText,
   Field,
+  ListCard,
   NoticeText,
   PrimaryButton,
   Screen,
+  SectionHeader,
 } from '@/components/ui';
 import { api, errorMessage } from '@/lib/api';
 import type { Business, Category, SupplierRequest } from '@/lib/types';
@@ -64,7 +65,7 @@ function BuildBody() {
         contact_email: contact.trim() || undefined,
         category: category.trim() || undefined,
       });
-      setNotice(`“${created.name}” created.`);
+      setNotice(`“${created.name}” is live.`);
       setName('');
       setDescription('');
       setLocation('');
@@ -82,19 +83,16 @@ function BuildBody() {
     <>
       <ThemedText type="subtitle">Build</ThemedText>
       <ThemedText themeColor="textSecondary">
-        Create a business profile, manage what you offer, and find opportunities.
+        Create economic activity — businesses, offerings, and opportunities.
       </ThemedText>
 
-      <ThemedText type="smallBold">My businesses ({mine.length})</ThemedText>
-      {mine.slice(0, 10).map((b) => (
-        <Card key={b.id}>
-          <ThemedText type="smallBold">{b.name}</ThemedText>
-          {!!b.location && (
-            <ThemedText type="small" themeColor="textSecondary">
-              {b.location}
-            </ThemedText>
-          )}
-        </Card>
+      <SectionHeader title={`My businesses (${mine.length})`} />
+      {mine.slice(0, 8).map((b) => (
+        <ListCard
+          key={b.id}
+          title={b.name}
+          meta={[b.location, b.description].filter(Boolean)}
+        />
       ))}
       {mine.length === 0 && (
         <ThemedText type="small" themeColor="textSecondary">
@@ -102,7 +100,7 @@ function BuildBody() {
         </ThemedText>
       )}
 
-      <ThemedText type="smallBold">New business</ThemedText>
+      <SectionHeader title="New business" />
       <Field label="Business name *" value={name} onChangeText={setName} />
       <Field label="Description" value={description} onChangeText={setDescription} />
       <Field label="Location" value={location} onChangeText={setLocation} />
@@ -114,7 +112,7 @@ function BuildBody() {
         onChangeText={setContact}
       />
       <Field
-        label={`Category name${categories.length > 0 ? ` (e.g. ${categories.slice(0, 3).map((c) => c.name).join(', ')})` : ''}`}
+        label={`Category${categories.length > 0 ? ` (e.g. ${categories.slice(0, 3).map((c) => c.name).join(', ')})` : ''}`}
         autoCapitalize="none"
         value={category}
         onChangeText={setCategory}
@@ -122,23 +120,23 @@ function BuildBody() {
       <ErrorText message={error} />
       <NoticeText message={notice} />
       <PrimaryButton
+        tone="gold"
         title={busy ? 'Creating…' : 'Create business'}
         onPress={() => void createBusiness()}
         disabled={busy}
       />
 
-      <ThemedText type="smallBold">Opportunities ({opps.length})</ThemedText>
-      {opps.slice(0, 10).map((o) => (
-        <Card key={o.id}>
-          <ThemedText type="smallBold">{o.title}</ThemedText>
-          <ThemedText type="small" themeColor="textSecondary" numberOfLines={2}>
-            {o.description}
-          </ThemedText>
-          <ThemedText type="small" themeColor="textSecondary">
-            {o.requesting_business_name} · {o.status}
-            {o.budget_espees != null ? ` · budget ${o.budget_espees}` : ''}
-          </ThemedText>
-        </Card>
+      <SectionHeader title={`Opportunities (${opps.length})`} />
+      {opps.slice(0, 8).map((o) => (
+        <ListCard
+          key={o.id}
+          title={o.title}
+          pill={o.status}
+          meta={[
+            o.requesting_business_name,
+            o.budget_espees != null ? `Budget ${o.budget_espees} Espees` : null,
+          ].filter((m): m is string => m !== null)}
+        />
       ))}
       {opps.length === 0 && (
         <ThemedText type="small" themeColor="textSecondary">

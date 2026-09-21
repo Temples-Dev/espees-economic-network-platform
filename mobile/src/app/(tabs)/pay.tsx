@@ -1,16 +1,19 @@
 import { useCallback, useState } from 'react';
-import { Pressable } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
 import {
   AuthGate,
   Card,
   ErrorText,
   Field,
+  ListCard,
   NoticeText,
   PrimaryButton,
   Screen,
+  SectionHeader,
 } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -64,13 +67,12 @@ function PayBody() {
         business: selected.business,
         items: [{ offering: selected.id, quantity: qty }],
       });
-      setNotice(`Order placed: ${order.total} Espees · ${order.status}.`);
+      setNotice(`Payment confirmed: ${order.total} Espees · ${order.status}.`);
       setSelectedId(null);
       setQuantity('1');
-      const mine = await api.getList<Order>('/api/v1/orders/');
-      setOrders(mine);
+      setOrders(await api.getList<Order>('/api/v1/orders/'));
     } catch (err) {
-      setError(errorMessage(err, 'Order failed.'));
+      setError(errorMessage(err, 'Payment failed.'));
     } finally {
       setBusy(false);
     }
@@ -80,23 +82,27 @@ function PayBody() {
     <>
       <ThemedText type="subtitle">Pay</ThemedText>
       <ThemedText themeColor="textSecondary">
-        Select an offering, review the total, and confirm. Payment goes to the business as an
-        order.
+        Choose an offering, review the total, and confirm.
       </ThemedText>
 
-      <ThemedText type="smallBold">Offerings</ThemedText>
-      {offerings.slice(0, 15).map((o) => {
+      <SectionHeader title="Offerings" />
+      {offerings.slice(0, 12).map((o) => {
         const active = o.id === selectedId;
         return (
           <Pressable key={o.id} onPress={() => setSelectedId(active ? null : o.id)}>
-            <Card>
-              <ThemedText type="smallBold" style={active ? { color: theme.primary } : undefined}>
-                {active ? '✓ ' : ''}{o.name}
-              </ThemedText>
-              <ThemedText type="small" themeColor="textSecondary">
-                {o.business_name} · {o.price} Espees
-              </ThemedText>
-            </Card>
+            <ThemedView
+              type="backgroundElement"
+              style={{
+                borderWidth: active ? 2 : 0,
+                borderColor: theme.primary,
+                borderRadius: Spacing.three,
+              }}>
+              <ListCard
+                title={`${active ? '✓ ' : ''}${o.name}`}
+                pill={o.kind}
+                meta={[`${o.business_name} · ${o.price} Espees`]}
+              />
+            </ThemedView>
           </Pressable>
         );
       })}
@@ -106,46 +112,37 @@ function PayBody() {
         </ThemedText>
       )}
 
-      <Field
-        label="Quantity"
-        keyboardType="numeric"
-        value={quantity}
-        onChangeText={setQuantity}
-      />
-      {selected && (
-        <Card>
-          <ThemedText type="smallBold">Review</ThemedText>
-          <ThemedText type="small" themeColor="textSecondary">
-            {selected.name} × {qty} = {total.toFixed(2)} Espees to {selected.business_name}
-          </ThemedText>
-        </Card>
-      )}
+      <View style={{ flexDirection: 'row', gap: Spacing.two }}>
+        <View style={{ flex: 1 }}>
+          <Field label="Quantity" keyboardType="numeric" value={quantity} onChangeText={setQuantity} />
+        </View>
+        <View style={{ flex: 2, justifyContent: 'flex-end' }}>
+          <Card>
+            <ThemedText type="small" themeColor="textSecondary">
+              Total
+            </ThemedText>
+            <ThemedText type="smallBold">{total.toFixed(2)} Espees</ThemedText>
+          </Card>
+        </View>
+      </View>
+
       <ErrorText message={error} />
       <NoticeText message={notice} />
       <PrimaryButton
-        title={busy ? 'Placing order…' : 'Confirm payment'}
+        tone="gold"
+        title={busy ? 'Processing…' : 'Confirm payment'}
         onPress={() => void submit()}
         disabled={busy || !selected}
       />
 
-      <ThemedText type="smallBold" style={{ marginTop: Spacing.two }}>
-        My orders
-      </ThemedText>
-      {orders.slice(0, 10).map((o) => (
-        <Card key={o.id}>
-          <ThemedText type="smallBold">
-            {o.total} Espees · {o.status}
-          </ThemedText>
-          <ThemedText type="small" themeColor="textSecondary">
-            {o.business_name} · {new Date(o.created_at).toLocaleString()}
-          </ThemedText>
-        </Card>
+      <SectionHeader title={`Recent payments (${orders.length})`} />
+      {orders.slice(0, 5).map((o) => (
+        <ListCard
+          key={o.id}
+          title={`${o.total} Espees · ${o.status}`}
+          meta={[`${o.business_name} · ${new Date(o.created_at).toLocaleDateString()}`]}
+        />
       ))}
-      {orders.length === 0 && (
-        <ThemedText type="small" themeColor="textSecondary">
-          No orders yet.
-        </ThemedText>
-      )}
     </>
   );
 }
