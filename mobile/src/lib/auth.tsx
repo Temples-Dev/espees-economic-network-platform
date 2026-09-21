@@ -7,7 +7,10 @@ import type { RegisterPayload, User } from './types';
 type AuthState = {
   user: User | null;
   loading: boolean;
+  /** True after login returns a two-factor challenge. */
+  needsCode: boolean;
   login: (email: string, password: string) => Promise<void>;
+  loginWithCode: (code: string) => Promise<void>;
   register: (payload: RegisterPayload) => Promise<void>;
   logout: () => Promise<void>;
   reload: () => Promise<void>;
@@ -18,6 +21,7 @@ const AuthContext = createContext<AuthState | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
 
   const reload = async () => {
     try {
@@ -38,12 +42,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       user,
       loading,
+      needsCode: pendingEmail !== null,
       login: async (email: string, password: string) => {
+        const body = await api.post<{
+          access?: string;
+          refresh?: string;
+          two_factor_required?: boolean;
+        }>('/api/v1/auth/login/', { email, password });
+        if (body.two_factor_required) {
+          setPendingEmail(email);
+          return;
+        }
+        await api.setTokens(body.access as string, body.refresh as string);
+        await reload();
+      },
+      loginWithCode: async (code: string) => {
+        if (!pendingEmail) throw new Error('No pending sign-in.');
         const pair = await api.post<{ access: string; refresh: string }>(
-          '/api/v1/auth/login/',
-          { email, password },
+          '/api/v1/auth/login/2fa/',
+          { email: pendingEmail, code },
         );
         await api.setTokens(pair.access, pair.refresh);
+        setPendingEmail(null);
         await reload();
       },
       register: async (payload: RegisterPayload) => {
@@ -65,7 +85,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       reload,
     }),
-    [user, loading],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [user, loading, pendingEmail],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

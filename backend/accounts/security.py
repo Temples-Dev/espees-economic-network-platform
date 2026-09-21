@@ -75,6 +75,29 @@ def notify_security(recipient, title, message):
     notify(recipient, 'security', title, message)
 
 
+def new_totp_secret():
+    import pyotp
+
+    return pyotp.random_base32()
+
+
+def totp_provisioning_uri(secret, email):
+    import pyotp
+
+    return pyotp.totp.TOTP(secret).provisioning_uri(name=email, issuer_name='EENP')
+
+
+def verify_totp(secret, code):
+    import pyotp
+
+    if not secret or not code:
+        return False
+    try:
+        return pyotp.totp.TOTP(secret).verify(str(code).strip(), valid_window=1)
+    except Exception:
+        return False
+
+
 def unverified_jti(raw):
     """Extract the jti claim without consulting the blacklist.
 

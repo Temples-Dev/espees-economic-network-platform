@@ -220,3 +220,96 @@ class RefreshRotationTests(APITestCase):
     def test_malformed_refresh_is_401(self):
         resp = self.client.post(self.refresh_url, {'refresh': 'not-a-token'}, format='json')
         self.assertEqual(resp.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class TwoFactorTests(APITestCase):
+    def setUp(self):
+        self.login_url = reverse('accounts:login')
+        self.login_2fa_url = reverse('accounts:login_2fa')
+        self.user = User.objects.create_user(email='totp@example.com', password='strong-password-1')
+
+    def _current_code(self):
+        import pyotp
+
+        self.user.refresh_from_db()
+        return pyotp.totp.TOTP(self.user.totp_secret).now()
+
+    def _enable_2fa(self):
+        self.client.force_authenticate(user=self.user)
+        enroll = self.client.post(reverse('accounts:two_factor_enroll'), {}, format='json')
+        self.assertEqual(enroll.status_code, status.HTTP_200_OK)
+        self.assertIn('provisioning_uri', enroll.data)
+        self.user.refresh_from_db()
+        confirm = self.client.post(
+            reverse('accounts:two_factor_confirm'), {'code': self._current_code()}, format='json'
+        )
+        self.assertEqual(confirm.status_code, status.HTTP_200_OK)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.totp_enabled)
+
+    def test_enroll_requires_authentication(self):
+        resp = self.client.post(reverse('accounts:two_factor_enroll'), {}, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_confirm_rejects_wrong_code(self):
+        self.client.force_authenticate(user=self.user)
+        self.client.post(reverse('accounts:two_factor_enroll'), {}, format='json')
+        resp = self.client.post(
+            reverse('accounts:two_factor_confirm'), {'code': '000000'}, format='json'
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.totp_enabled)
+
+    def test_login_issues_challenge_then_tokens(self):
+        self._enable_2fa()
+        first = self.client.post(
+            self.login_url, {'email': 'totp@example.com', 'password': 'strong-password-1'}, format='json'
+        )
+        self.assertEqual(first.status_code, status.HTTP_202_ACCEPTED)
+        self.assertTrue(first.data['two_factor_required'])
+        self.assertNotIn('access', first.data)
+
+        bad = self.client.post(
+            self.login_2fa_url, {'email': 'totp@example.com', 'code': '000000'}, format='json'
+        )
+        self.assertEqual(bad.status_code, status.HTTP_401_UNAUTHORIZED)
+
+        good = self.client.post(
+            self.login_2fa_url, {'email': 'totp@example.com', 'code': self._current_code()}, format='json'
+        )
+        self.assertEqual(good.status_code, status.HTTP_200_OK)
+        self.assertIn('access', good.data)
+        self.assertIn('refresh', good.data)
+        self.assertEqual(
+            Notification.objects.filter(recipient=self.user, category='security').count(), 1
+        )
+
+    def test_login_2fa_rejects_unknown_email(self):
+        resp = self.client.post(
+            self.login_2fa_url, {'email': 'nobody@example.com', 'code': '123456'}, format='json'
+        )
+        self.assertEqual(resp.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_login_2fa_rejects_when_not_enabled(self):
+        resp = self.client.post(
+            self.login_2fa_url, {'email': 'totp@example.com', 'code': '123456'}, format='json'
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_disable_restores_direct_login(self):
+        self._enable_2fa()
+        self.client.force_authenticate(user=self.user)
+        wrong = self.client.post(
+            reverse('accounts:two_factor_disable'), {'password': 'nope'}, format='json'
+        )
+        self.assertEqual(wrong.status_code, status.HTTP_400_BAD_REQUEST)
+        resp = self.client.post(
+            reverse('accounts:two_factor_disable'), {'password': 'strong-password-1'}, format='json'
+        )
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        direct = self.client.post(
+            self.login_url, {'email': 'totp@example.com', 'password': 'strong-password-1'}, format='json'
+        )
+        self.assertEqual(direct.status_code, status.HTTP_200_OK)
+        self.assertIn('access', direct.data)

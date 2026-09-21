@@ -18,11 +18,12 @@ import { errorMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 
 export default function SignInScreen() {
-  const { loading, login, register } = useAuth();
+  const { loading, login, loginWithCode, needsCode, register } = useAuth();
   const theme = useTheme();
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,7 +45,43 @@ export default function SignInScreen() {
     }
   }
 
+  async function submitCode() {
+    setError(null);
+    setBusy(true);
+    try {
+      await loginWithCode(code.trim());
+      setCode('');
+    } catch (err) {
+      setError(errorMessage(err, 'Invalid code.'));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (loading) return <Loading />;
+
+  if (needsCode) {
+    return (
+      <Screen>
+        <Hero title="Check your" accent="authenticator" copy="Enter the 6-digit code to finish signing in." />
+        <Card>
+          <Field
+            label="Two-factor code"
+            keyboardType="numeric"
+            value={code}
+            onChangeText={setCode}
+          />
+          <ErrorText message={error} />
+          <PrimaryButton
+            tone="gold"
+            title={busy ? 'Verifying…' : 'Verify'}
+            onPress={() => void submitCode()}
+            disabled={busy}
+          />
+        </Card>
+      </Screen>
+    );
+  }
 
   return (
     <Screen>

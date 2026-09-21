@@ -104,20 +104,170 @@ class LoginView(APIView):
                 status=status.HTTP_401_UNAUTHORIZED,
             )
 
-        # Detect a new device BEFORE recording today's success, otherwise the
-        # just-written row makes every login look like a known device.
-        key = security.device_key(request)
-        new_device = security.is_new_device(user, key)
-        security.record_login_attempt(email, request, success=True, user=user)
-        if new_device:
-            security.notify_security(
-                user,
-                'New device sign-in',
-                'We detected a sign-in from a new device or browser.',
+        if user.totp_enabled:
+            return Response(
+                {'detail': 'Two-factor code required.', 'two_factor_required': True},
+                status=status.HTTP_202_ACCEPTED,
             )
 
-        refresh = RefreshToken.for_user(user)
-        return Response({'refresh': str(refresh), 'access': str(refresh.access_token)})
+        return _issue_login(request, user, email)
+
+
+class TwoFactorCodeSerializer(serializers.Serializer):
+    code = serializers.CharField()
+
+
+class TwoFactorLoginSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    code = serializers.CharField()
+
+
+class PasswordConfirmSerializer(serializers.Serializer):
+    password = serializers.CharField(write_only=True)
+
+
+def _issue_login(request, user, email):
+    """Record a successful sign-in, notify on new devices, return a token pair."""
+    # Detect a new device BEFORE recording today's success, otherwise the
+    # just-written row makes every login look like a known device.
+    key = security.device_key(request)
+    new_device = security.is_new_device(user, key)
+    security.record_login_attempt(email, request, success=True, user=user)
+    if new_device:
+        security.notify_security(
+            user,
+            'New device sign-in',
+            'We detected a sign-in from a new device or browser.',
+        )
+
+    refresh = RefreshToken.for_user(user)
+    return Response({'refresh': str(refresh), 'access': str(refresh.access_token)})
+
+
+class TwoFactorEnrollView(APIView):
+    """Start TOTP enrollment: (re)generate a secret and return a provisioning URI.
+
+    The secret stays disabled until confirmed with a valid code, so abandoning
+    enrollment changes nothing about the account.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+    http_method_names = ['post']
+
+    @extend_schema(
+        tags=['accounts'],
+        summary='Start two-factor enrollment',
+        responses={
+            200: OpenApiResponse(description='TOTP secret and provisioning URI'),
+        },
+    )
+    def post(self, request):
+        request.user.totp_secret = security.new_totp_secret()
+        request.user.totp_enabled = False
+        request.user.save(update_fields=['totp_secret', 'totp_enabled', 'updated_at'])
+        return Response(
+            {
+                'secret': request.user.totp_secret,
+                'provisioning_uri': security.totp_provisioning_uri(
+                    request.user.totp_secret, request.user.email
+                ),
+            }
+        )
+
+
+class TwoFactorConfirmView(APIView):
+    """Confirm enrollment with a TOTP code, enabling two-factor sign-in."""
+
+    permission_classes = [permissions.IsAuthenticated]
+    http_method_names = ['post']
+
+    @extend_schema(
+        tags=['accounts'],
+        summary='Confirm two-factor enrollment',
+        request=TwoFactorCodeSerializer,
+        responses={
+            200: OpenApiResponse(description='Two-factor authentication enabled'),
+            400: OpenApiResponse(description='Missing secret or invalid code'),
+        },
+    )
+    def post(self, request):
+        code = request.data.get('code') or ''
+        if not request.user.totp_secret or not security.verify_totp(request.user.totp_secret, code):
+            return Response(
+                {'detail': 'Invalid code.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        request.user.totp_enabled = True
+        request.user.save(update_fields=['totp_enabled', 'updated_at'])
+        return Response({'detail': 'Two-factor authentication enabled.'})
+
+
+class TwoFactorDisableView(APIView):
+    """Disable two-factor sign-in after confirming the account password."""
+
+    permission_classes = [permissions.IsAuthenticated]
+    http_method_names = ['post']
+
+    @extend_schema(
+        tags=['accounts'],
+        summary='Disable two-factor authentication',
+        request=PasswordConfirmSerializer,
+        responses={
+            200: OpenApiResponse(description='Two-factor authentication disabled'),
+            400: OpenApiResponse(description='Incorrect password'),
+        },
+    )
+    def post(self, request):
+        password = request.data.get('password') or ''
+        if not request.user.check_password(password):
+            return Response(
+                {'detail': 'Password is incorrect.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        request.user.totp_secret = ''
+        request.user.totp_enabled = False
+        request.user.save(update_fields=['totp_secret', 'totp_enabled', 'updated_at'])
+        return Response({'detail': 'Two-factor authentication disabled.'})
+
+
+class TwoFactorLoginView(APIView):
+    """Second step of sign-in for accounts with two-factor enabled."""
+
+    permission_classes = [permissions.AllowAny]
+    http_method_names = ['post']
+
+    @extend_schema(
+        tags=['accounts'],
+        summary='Complete sign-in with a two-factor code',
+        request=TwoFactorLoginSerializer,
+        responses={
+            200: OpenApiResponse(response=TokenPairSerializer, description='Access and refresh tokens'),
+            400: OpenApiResponse(description='Two-factor not enabled'),
+            401: OpenApiResponse(description='Invalid code'),
+        },
+    )
+    def post(self, request):
+        email = (request.data.get('email') or '').strip()
+        code = request.data.get('code') or ''
+        try:
+            user = User.objects.get(email__iexact=email)
+        except User.DoesNotExist:
+            return Response(
+                {'detail': 'No active account found with the given credentials.'},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+        if not user.totp_enabled:
+            return Response(
+                {'detail': 'Two-factor authentication is not enabled.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not security.verify_totp(user.totp_secret, code):
+            security.record_login_attempt(email, request, success=False)
+            return Response(
+                {'detail': 'Invalid code.'},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+        return _issue_login(request, user, email)
 
 
 class RefreshRequestSerializer(serializers.Serializer):

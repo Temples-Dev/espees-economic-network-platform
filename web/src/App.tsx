@@ -44,8 +44,15 @@ function LoginForm({ onDone }: { onDone: (u: User) => void }) {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [code, setCode] = useState("");
+  const [needsCode, setNeedsCode] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  async function finishWithTokens(pair: { access: string; refresh: string }) {
+    api.setTokens(pair.access, pair.refresh);
+    onDone(await api.get<User>("/api/v1/me/"));
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -55,17 +62,80 @@ function LoginForm({ onDone }: { onDone: (u: User) => void }) {
       if (mode === "register") {
         await api.post("/api/v1/auth/register/", { email, password });
       }
-      const pair = await api.post<{ access: string; refresh: string }>(
-        "/api/v1/auth/login/",
-        { email, password },
-      );
-      api.setTokens(pair.access, pair.refresh);
-      onDone(await api.get<User>("/api/v1/me/"));
+      const body = await api.post<{
+        access?: string;
+        refresh?: string;
+        two_factor_required?: boolean;
+      }>("/api/v1/auth/login/", { email, password });
+      if (body.two_factor_required) {
+        setNeedsCode(true);
+        return;
+      }
+      await finishWithTokens(body as { access: string; refresh: string });
     } catch (err) {
       setError(errorMessage(err, mode === "login" ? "Sign-in failed." : "Sign-up failed."));
     } finally {
       setBusy(false);
     }
+  }
+
+  async function submitCode(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setBusy(true);
+    try {
+      const pair = await api.post<{ access: string; refresh: string }>(
+        "/api/v1/auth/login/2fa/",
+        { email, code },
+      );
+      setNeedsCode(false);
+      setCode("");
+      await finishWithTokens(pair);
+    } catch (err) {
+      setError(errorMessage(err, "Invalid code."));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (needsCode) {
+    return (
+      <main className="mx-auto mt-16 max-w-sm px-6">
+        <h1 className="text-2xl font-semibold">Two-factor code</h1>
+        <p className="mt-1 text-sm text-zinc-500">
+          Enter the 6-digit code from your authenticator app.
+        </p>
+        <form onSubmit={submitCode} className="mt-4 space-y-4">
+          <input
+            required
+            inputMode="numeric"
+            placeholder="123456"
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            className="w-full rounded border border-zinc-700 bg-zinc-900 px-3 py-2 text-center text-xl tracking-widest"
+            autoComplete="one-time-code"
+          />
+          {error && <p className="text-sm text-red-400">{error}</p>}
+          <button
+            disabled={busy}
+            className="w-full rounded-lg bg-royal px-4 py-2 font-medium text-white hover:bg-deep disabled:opacity-50"
+          >
+            {busy ? "Verifying…" : "Verify"}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setNeedsCode(false);
+              setCode("");
+              setError(null);
+            }}
+            className="w-full text-sm text-zinc-400 hover:text-zinc-200"
+          >
+            Back to sign-in
+          </button>
+        </form>
+      </main>
+    );
   }
 
   return (
