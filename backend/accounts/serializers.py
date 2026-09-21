@@ -40,3 +40,27 @@ class UserSerializer(serializers.ModelSerializer):
             'wallet',
         ]
         read_only_fields = fields
+
+class ProfileUpdateSerializer(serializers.ModelSerializer):
+    """The only fields a member may change about themselves (email, verification and roles are not among them)."""
+
+    full_name = serializers.CharField(max_length=255, required=False)
+    phone = serializers.CharField(max_length=32, required=False, allow_blank=True)
+
+    class Meta:
+        model = User
+        fields = ['full_name', 'phone']
+
+    def validate_full_name(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError('Enter your name.')
+        return value
+
+    def validate_phone(self, value):
+        value = value.strip()
+        if value and len(''.join(ch for ch in value if ch.isdigit())) < 7:
+            raise serializers.ValidationError('Enter a valid phone number.')
+        if value and not all(ch.isdigit() or ch in '+ -()' for ch in value):
+            raise serializers.ValidationError('Enter a valid phone number.')
+        return value

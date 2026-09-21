@@ -15,9 +15,10 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 
-from . import security, services
+from . import security, services, verification
+from .throttling import AuthRateThrottle
 from .models import RefreshRotation, User, Wallet
-from .serializers import RegisterSerializer, UserSerializer
+from .serializers import ProfileUpdateSerializer, RegisterSerializer, UserSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +36,7 @@ class TokenPairSerializer(serializers.Serializer):
 class RegisterView(APIView):
     """Create a member account with an auto-provisioned Espees wallet reference."""
 
+    throttle_classes = [AuthRateThrottle]
     permission_classes = [permissions.AllowAny]
     http_method_names = ['post']
 
@@ -50,6 +52,7 @@ class RegisterView(APIView):
         user = serializer.save()
 
         Wallet.objects.get_or_create(user=user)
+        verification.send_verification_email(user)
         try:
             services.provision_espees_wallet(user.id)
         except Exception:
@@ -67,6 +70,7 @@ class LoginView(APIView):
     sign-ins from an unfamiliar device context raise a security notification.
     """
 
+    throttle_classes = [AuthRateThrottle]
     permission_classes = [permissions.AllowAny]
     http_method_names = ['post']
 
@@ -248,6 +252,7 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
 class PasswordResetView(APIView):
     """Request a password-reset email. Always succeeds to avoid account enumeration."""
 
+    throttle_classes = [AuthRateThrottle]
     permission_classes = [permissions.AllowAny]
     http_method_names = ['post']
 
@@ -281,6 +286,7 @@ class PasswordResetView(APIView):
 class PasswordResetConfirmView(APIView):
     """Set a new password with a reset link, signing out all other sessions."""
 
+    throttle_classes = [AuthRateThrottle]
     permission_classes = [permissions.AllowAny]
     http_method_names = ['post']
 
@@ -328,9 +334,57 @@ class PasswordResetConfirmView(APIView):
         )
 
 
+class VerifyEmailRequestView(APIView):
+    """Send (or resend) the email-verification link to the signed-in member."""
+
+    throttle_classes = [AuthRateThrottle]
+    permission_classes = [permissions.IsAuthenticated]
+    http_method_names = ['post']
+
+    @extend_schema(
+        tags=['accounts'],
+        summary='Request an email-verification link',
+        request=None,
+        responses={200: OpenApiResponse(description='Verification email sent, or already verified')},
+    )
+    def post(self, request):
+        if request.user.is_verified:
+            return Response({'detail': 'Your email is already verified.'})
+        verification.send_verification_email(request.user)
+        return Response({'detail': 'Verification email sent.'})
+
+
+class VerifyEmailConfirmView(APIView):
+    """Confirm an email address with the token from the verification link."""
+
+    permission_classes = [permissions.AllowAny]
+    http_method_names = ['post']
+
+    @extend_schema(
+        tags=['accounts'],
+        summary='Confirm an email address',
+        request=None,
+        responses={
+            200: OpenApiResponse(description='Email verified'),
+            400: OpenApiResponse(description='Invalid or expired link'),
+        },
+    )
+    def post(self, request):
+        payload = verification.read_token(request.data.get('token') or '')
+        user = User.objects.filter(pk=payload['uid']).first() if payload else None
+        if user is None or user.email != payload['email']:
+            return Response({'detail': 'Invalid or expired verification link.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not user.is_verified:
+            user.is_verified = True
+            user.save(update_fields=['is_verified', 'updated_at'])
+            security.notify_security(user, 'Email verified', 'Your email address was verified.')
+        return Response({'detail': 'Email verified.'})
+
+
 class TwoFactorLoginView(APIView):
     """Second step of sign-in for accounts with two-factor enabled."""
 
+    throttle_classes = [AuthRateThrottle]
     permission_classes = [permissions.AllowAny]
     http_method_names = ['post']
 
@@ -528,4 +582,10 @@ class MeView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
+        return Response(UserSerializer(request.user).data)
+
+    def patch(self, request):
+        serializer = ProfileUpdateSerializer(request.user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
         return Response(UserSerializer(request.user).data)

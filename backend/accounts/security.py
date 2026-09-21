@@ -73,6 +73,9 @@ def notify_security(recipient, title, message):
     from notifications.services import notify
 
     notify(recipient, 'security', title, message)
+    from core import audit
+
+    audit.record(recipient, 'security.' + title.lower().replace(' ', '_'), target=recipient)
 
 
 def new_totp_secret():

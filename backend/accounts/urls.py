@@ -19,6 +19,8 @@ urlpatterns = [
         views.PasswordResetConfirmView.as_view(),
         name='password_reset_confirm',
     ),
+    path('auth/verify-email/request/', views.VerifyEmailRequestView.as_view(), name='verify_email_request'),
+    path('auth/verify-email/confirm/', views.VerifyEmailConfirmView.as_view(), name='verify_email_confirm'),
     path('auth/change-password/', views.ChangePasswordView.as_view(), name='change_password'),
     path('auth/sessions/', views.SessionsView.as_view(), name='sessions'),
     path('me/', views.MeView.as_view(), name='me'),
