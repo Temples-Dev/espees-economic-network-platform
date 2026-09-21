@@ -2,6 +2,8 @@ import uuid
 
 from django.conf import settings
 from django.db import models
+
+from core.validators import validate_image_size
 from django.db.models import Sum
 from django.utils.text import slugify
 from decimal import Decimal
@@ -32,6 +34,7 @@ class Offering(models.Model):
         related_name='offerings',
     )
     price = models.DecimalField(max_digits=14, decimal_places=2)  # Espees
+    image = models.ImageField(upload_to='offerings/', null=True, blank=True, validators=[validate_image_size])
     is_active = models.BooleanField(default=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -113,3 +116,46 @@ class OrderItem(models.Model):
 
     def __str__(self):
         return f'{self.offering.name} x{self.quantity}'
+
+class Dispute(models.Model):
+    """A complaint about an order, raised by the customer or the business and resolved by platform staff.
+
+    Outcomes are recorded here; any money movement is handled separately by the Espees layer.
+    """
+
+    class Reason(models.TextChoices):
+        NOT_RECEIVED = 'not_received', 'Not received'
+        NOT_AS_DESCRIBED = 'not_as_described', 'Not as described'
+        WRONG_AMOUNT = 'wrong_amount', 'Wrong amount'
+        OTHER = 'other', 'Other'
+
+    class Status(models.TextChoices):
+        OPEN = 'open', 'Open'
+        RESOLVED = 'resolved', 'Resolved'
+
+    class Outcome(models.TextChoices):
+        FOR_CUSTOMER = 'for_customer', 'In favour of the customer'
+        FOR_BUSINESS = 'for_business', 'In favour of the business'
+        DISMISSED = 'dismissed', 'Dismissed'
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='disputes')
+    opened_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='disputes_opened')
+    reason = models.CharField(max_length=24, choices=Reason.choices)
+    description = models.TextField()
+
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.OPEN)
+    outcome = models.CharField(max_length=16, choices=Outcome.choices, blank=True, default='')
+    resolution_note = models.TextField(blank=True, default='')
+    resolved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='+'
+    )
+    resolved_at = models.DateTimeField(null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'Dispute on {self.order_id} ({self.status})'

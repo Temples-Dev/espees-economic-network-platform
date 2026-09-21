@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
-from businesses.models import Business, Category
-from .models import Offering, Order, OrderItem
+from businesses.models import Business, BusinessMembership, Category
+from .models import Dispute, Offering, Order, OrderItem
 
 
 class OfferingSerializer(serializers.ModelSerializer):
@@ -24,6 +24,7 @@ class OfferingSerializer(serializers.ModelSerializer):
             'description',
             'category',
             'price',
+            'image',
             'average_rating',
             'review_count',
             'is_active',
@@ -128,3 +129,36 @@ class OrderStatusSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = ['status']
+
+class DisputeSerializer(serializers.ModelSerializer):
+    business_name = serializers.CharField(source='order.business.name', read_only=True)
+
+    class Meta:
+        model = Dispute
+        fields = [
+            'id', 'order', 'business_name', 'reason', 'description', 'status', 'outcome',
+            'resolution_note', 'resolved_at', 'created_at',
+        ]
+        read_only_fields = ['id', 'business_name', 'status', 'outcome', 'resolution_note', 'resolved_at', 'created_at']
+
+    def validate_description(self, value):
+        if not value.strip():
+            raise serializers.ValidationError('Describe what went wrong.')
+        return value.strip()
+
+    def validate(self, attrs):
+        user = self.context['request'].user
+        order = attrs['order']
+        is_customer = order.customer_id == user.id
+        is_manager = BusinessMembership.objects.filter(
+            user=user, business=order.business,
+            role__in=[BusinessMembership.Role.OWNER, BusinessMembership.Role.ADMIN],
+        ).exists()
+        if not (is_customer or is_manager):
+            raise serializers.ValidationError({'order': 'You can only dispute your own orders or your business\'s.'})
+        if order.status not in (Order.Status.CONFIRMED, Order.Status.FULFILLED):
+            raise serializers.ValidationError({'order': 'Only confirmed or fulfilled orders can be disputed.'})
+        if order.disputes.filter(status=Dispute.Status.OPEN).exists():
+            raise serializers.ValidationError({'order': 'This order already has an open dispute.'})
+        attrs['_notify_business'] = is_customer
+        return attrs
