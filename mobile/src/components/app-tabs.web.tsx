@@ -36,8 +36,8 @@ export default function AppTabs() {
           <TabTrigger name="community" href="/community" asChild>
             <TabButton>Community</TabButton>
           </TabTrigger>
-          <TabTrigger name="wallet" href="/wallet" asChild>
-            <TabButton>Wallet</TabButton>
+          <TabTrigger name="profile" href="/profile" asChild>
+            <TabButton>Profile</TabButton>
           </TabTrigger>
         </CustomTabList>
       </TabList>
