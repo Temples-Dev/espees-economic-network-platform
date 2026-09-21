@@ -35972,3 +35972,1415 @@ The platform becomes valuable not because it contains every possible feature, bu
 **End of Document 15**
 
 &nbsp;
+
+# Tab 18
+
+Yes. Since Espees has not responded yet, Document 16 should **freeze the current known position without pretending the unresolved parts are settled**. That will give you a reliable basis for designing the mobile UI while keeping the integration-dependent areas flexible.
+
+Below is the base document.
+
+# Document 16 — Product & Integration Reconciliation Specification
+
+**Product:** Espees Economic Network Platform (EENP) **Document Type:** Product & Integration Reconciliation **Status:** Working Baseline — Pending Espees Confirmation **Version:** 1.0 **Purpose:** Reconcile established EENP product decisions with currently confirmed Espees integration capabilities and identify areas that remain externally dependent.
+
+---
+
+## 1\. Purpose
+
+This document establishes the current reconciled understanding of the EENP product and its relationship with the Espees ecosystem.
+
+It exists because the product architecture was initially designed around the assumption that EENP could programmatically provision and manage Espees user wallets. Investigation of the available Espees developer documentation has shown that the currently exposed public APIs primarily cover Merchant and Vending functionality, while User APIs are not exposed in the public documentation reviewed.
+
+This does **not** invalidate the EENP product vision.
+
+Instead, it establishes:
+
+* what is currently confirmed;  
+* what has been observed;  
+* what remains unconfirmed;  
+* what EENP controls;  
+* what Espees controls;  
+* what requires official Espees support;  
+* which product flows can proceed independently;  
+* which flows must remain integration-dependent.
+
+This document is therefore the current baseline for product and UI decisions until additional information is received from Espees.
+
+---
+
+# 2\. Current Product Position
+
+EENP remains an economic network platform for the LoveWorld Nation.
+
+Its purpose is to make Espees useful within a connected economic environment where members can:
+
+* discover businesses;  
+* discover products and services;  
+* transact;  
+* build businesses;  
+* find suppliers and customers;  
+* communicate;  
+* participate in community funding;  
+* establish economic relationships;  
+* discover opportunities through intelligent matching.
+
+The core economic loop remains:
+
+> **Fund → Discover → Transact → Build → Fund → Grow → Repeat**
+
+The new findings do not require this loop to be redesigned.
+
+They primarily affect **how EENP obtains, associates with, and interacts with Espees wallets and financial infrastructure.**
+
+---
+
+# 3\. Reconciliation Principle
+
+The following principle is now authoritative:
+
+> **EENP designs and controls the economic experience, while Espees remains the authoritative monetary infrastructure for Espees itself.**
+
+EENP should not create a competing monetary system.
+
+EENP may maintain platform-level records such as:
+
+* wallet association;  
+* payment intent;  
+* order;  
+* campaign contribution;  
+* funding transaction;  
+* external transaction reference;  
+* reconciliation state.
+
+However, EENP must not represent an internally generated balance as authoritative Espees balance information.
+
+---
+
+# 4\. Current Knowledge Classification
+
+To prevent assumptions from becoming requirements, all integration capabilities are classified as follows.
+
+| Classification | Meaning |
+| :---- | :---- |
+| **CONFIRMED** | Supported by currently available documentation or confirmed technical information |
+| **OBSERVED** | Demonstrated through a supplied test account or actual test environment |
+| **UNCONFIRMED** | Required or expected but not currently verified |
+| **DEPENDENT** | Requires an external Espees capability, authorization, or decision |
+| **EENP CONTROLLED** | Owned and implemented by EENP |
+| **ESPEES CONTROLLED** | Owned and authoritative within Espees |
+| **PROVISIONAL** | Architecture exists but implementation remains intentionally flexible |
+
+---
+
+# 5\. Confirmed Espees Integration Surface
+
+Based on the documentation currently available, the following public integration capabilities are known.
+
+## 5.1 Merchant APIs
+
+The Merchant API supports payment-related functionality including:
+
+* creating a payment/product request;  
+* redirecting a customer to the Espees hosted payment experience;  
+* confirming a payment;  
+* retrieving transaction outcome information.
+
+Known flow:
+
+EENP
+
+&nbsp;&nbsp;↓
+
+Create Payment
+
+&nbsp;&nbsp;↓
+
+Espees Payment Reference
+
+&nbsp;&nbsp;↓
+
+Hosted Espees Payment
+
+&nbsp;&nbsp;↓
+
+Customer Payment
+
+&nbsp;&nbsp;↓
+
+EENP Success/Failure Redirect
+
+&nbsp;&nbsp;↓
+
+Server-Side Confirmation
+
+&nbsp;&nbsp;↓
+
+Final Transaction State
+
+The browser redirect is not treated as proof of payment.
+
+EENP must perform server-side confirmation before considering an economic transaction complete.
+
+---
+
+## 5.2 Vending APIs
+
+The Vending API provides a mechanism for authorized vending agents to vend Espees to a specified wallet.
+
+Known flow:
+
+Authorized Vending Agent
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓
+
+Create Vending Token
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓
+
+Vend Espees
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓
+
+Recipient Espees Wallet
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓
+
+Transaction Reference
+
+The Vending API should not automatically be interpreted as a general-purpose P2P transfer API or local-currency exchange API.
+
+Any use of the Vending mechanism for local-currency funding must be explicitly validated and authorized by Espees.
+
+---
+
+# 6\. Observed User Wallet Capability
+
+The Espees test environment provides a test user account with an associated wallet.
+
+This establishes that the Espees ecosystem supports the concept of a normal user account and wallet.
+
+However:
+
+> **The existence of a test user does not establish that a public User API is available for programmatic account or wallet provisioning.**
+
+This distinction is critical.
+
+### Therefore:
+
+User account exists in Espees
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;≠
+
+Public API exists for EENP to create that account
+
+The EENP implementation must not assume the latter.
+
+---
+
+# 7\. User Wallet Provisioning Status
+
+The original product requirement remains:
+
+> Every EENP account should have an Espees wallet association.
+
+The implementation requirement is now expressed as:
+
+> Every EENP account shall have an Espees wallet association through an officially supported Espees provisioning or account-linking mechanism.
+
+The actual mechanism remains:
+
+**DEPENDENT / UNCONFIRMED**
+
+until Espees provides:
+
+* User API documentation;  
+* private/restricted API access;  
+* an account provisioning mechanism;  
+* wallet association mechanism;  
+* or another officially supported integration process.
+
+---
+
+# 8\. Revised Wallet Architecture
+
+The EENP wallet should be treated as an integration abstraction rather than an independent monetary wallet.
+
+EENP Account
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;▼
+
+EENP Wallet Association
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── EENP Wallet ID
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── Espees Wallet Address
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── Provisioning Status
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── External Account Reference
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── Integration Metadata
+
+The Espees wallet remains externally authoritative.
+
+EENP may store the association necessary to provide the user experience, but should not independently manufacture Espees monetary state.
+
+---
+
+# 9\. Wallet Provisioning States
+
+The platform should support a provisioning state machine independent of the eventual Espees implementation.
+
+NOT\_STARTED
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓
+
+REQUESTED
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓
+
+PROVISIONING
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓
+
+ASSOCIATED
+
+Possible exception states:
+
+PROVISIONING
+
+&nbsp;&nbsp;&nbsp;├── FAILED
+
+&nbsp;&nbsp;&nbsp;├── PENDING\_EXTERNAL
+
+&nbsp;&nbsp;&nbsp;└── REQUIRES\_ACTION
+
+This allows the mobile application to represent wallet setup without assuming how Espees implements it.
+
+### Mobile UI implication
+
+The application should be able to represent:
+
+* wallet ready;  
+* wallet being prepared;  
+* wallet setup pending;  
+* wallet setup requires action;  
+* wallet unavailable;  
+* temporary integration issue.
+
+The UI should not expose unnecessary technical terminology such as "API provisioning."
+
+---
+
+# 10\. What EENP Controls
+
+EENP controls the economic experience surrounding Espees.
+
+This includes:
+
+* user identity;  
+* profiles;  
+* business profiles;  
+* product/service discovery;  
+* marketplace;  
+* orders;  
+* requests;  
+* supplier relationships;  
+* conversations;  
+* campaigns;  
+* contributions;  
+* trust evidence;  
+* platform notifications;  
+* AI discovery;  
+* platform analytics;  
+* platform administration;  
+* platform audit records;  
+* platform-level transaction references;  
+* reconciliation records.
+
+---
+
+# 11\. What Espees Controls
+
+Espees remains authoritative for Espees monetary infrastructure.
+
+This includes, where applicable:
+
+* Espees wallets;  
+* Espees balances;  
+* Espees monetary transactions;  
+* Espees settlement;  
+* Espees wallet addresses;  
+* Espees payment processing;  
+* Espees vending;  
+* Espees transaction status.
+
+EENP must integrate with these capabilities rather than recreate them.
+
+---
+
+# 12\. Payment Architecture
+
+The reconciled architecture remains:
+
+Mobile Application
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓
+
+EENP API
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓
+
+Payment Service
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓
+
+Espees Integration Layer
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓
+
+Espees Adapter
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓
+
+Espees API
+
+The mobile application must never directly communicate with Espees APIs using privileged credentials.
+
+This preserves:
+
+* security;  
+* authorization;  
+* transaction consistency;  
+* auditability;  
+* integration abstraction;  
+* future provider changes.
+
+---
+
+# 13\. Merchant Payment Flow
+
+The currently known merchant payment experience is:
+
+User
+
+&nbsp;↓
+
+Select Product / Service
+
+&nbsp;↓
+
+Create Order
+
+&nbsp;↓
+
+Create Payment
+
+&nbsp;↓
+
+Receive Espees Payment Reference
+
+&nbsp;↓
+
+Hosted Espees Payment
+
+&nbsp;↓
+
+Complete Payment
+
+&nbsp;↓
+
+Return to EENP
+
+&nbsp;↓
+
+Server Confirms Payment
+
+&nbsp;↓
+
+Order Updated
+
+The mobile UI should therefore support an intermediate payment state.
+
+The user should not immediately see:
+
+> "Payment successful"
+
+merely because the hosted payment screen returned successfully.
+
+The platform should first establish the confirmed payment state.
+
+---
+
+# 14\. Payment States
+
+At the EENP level, the application should support at minimum:
+
+INITIATED
+
+PENDING
+
+COMPLETED
+
+FAILED
+
+UNKNOWN
+
+REQUIRES\_RECONCILIATION
+
+External Espees states may be normalized into these internal states.
+
+Known mapping:
+
+| Espees | EENP |
+| :---- | :---- |
+| APPROVED | COMPLETED |
+| DECLINE | FAILED |
+| PENDING | PENDING |
+| NOT FOUND | UNKNOWN / REQUIRES\_RECONCILIATION |
+
+The original external status must still be preserved.
+
+---
+
+# 15\. Local Currency Funding
+
+The product vision continues to support:
+
+> Local Currency → Espees → Economic Activity
+
+However, the actual Espees settlement mechanism is currently unresolved.
+
+The intended architecture remains:
+
+User
+
+&nbsp;↓
+
+Local Currency
+
+&nbsp;↓
+
+Local Payment Gateway
+
+&nbsp;↓
+
+Fiat Payment Confirmation
+
+&nbsp;↓
+
+Authorized Espees Settlement Mechanism
+
+&nbsp;↓
+
+User Espees Wallet
+
+&nbsp;↓
+
+EENP
+
+The architecture must not assume that the Vending API is automatically authorized for this purpose.
+
+Therefore:
+
+**Local Gateway → Espees settlement mechanism \= DEPENDENT**
+
+---
+
+# 16\. Withdrawal
+
+The product vision includes local-currency withdrawal.
+
+However, the current public Espees documentation reviewed does not establish a documented withdrawal/redemption API.
+
+Therefore:
+
+> Withdrawal must remain a product capability planned around an officially supported Espees redemption mechanism.
+
+Until confirmed, the UI should treat withdrawal as:
+
+**COMING / UNAVAILABLE / PENDING ENABLEMENT**
+
+rather than implying that the backend capability already exists.
+
+---
+
+# 17\. Marketplace Remains Unaffected
+
+The lack of a documented User API does not prevent EENP from designing and implementing the majority of the marketplace.
+
+The following remain valid:
+
+* business registration;  
+* business profiles;  
+* product listings;  
+* service listings;  
+* search;  
+* categories;  
+* business discovery;  
+* supplier discovery;  
+* customer requests;  
+* RFQs;  
+* quotes;  
+* orders;  
+* messaging;  
+* transaction-linked feedback.
+
+The marketplace can be built independently of the final User API implementation.
+
+---
+
+# 18\. Community Funding Remains Conceptually Valid
+
+Community funding remains part of the EENP product architecture.
+
+The following can be designed and implemented independently:
+
+* campaign creation;  
+* campaign discovery;  
+* campaign details;  
+* funding goals;  
+* campaign milestones;  
+* contributor experience;  
+* campaign updates;  
+* transparency;  
+* moderation;  
+* campaign lifecycle;  
+* contribution records.
+
+The actual movement and custody of Espees for contributions and disbursements remain subject to the confirmed Espees wallet/transaction capabilities.
+
+---
+
+# 19\. Trust & Reputation Remains Platform-Controlled
+
+Trust remains an EENP evidence layer.
+
+It can incorporate:
+
+* verified identity;  
+* verified business;  
+* completed transactions;  
+* fulfilment history;  
+* feedback;  
+* disputes;  
+* responsiveness;  
+* relationship history.
+
+The absence of User APIs does not prevent the trust system from being designed.
+
+However, trust records must distinguish between:
+
+* platform-generated evidence;  
+* externally verified financial evidence;  
+* user-submitted claims.
+
+---
+
+# 20\. AI & Discovery Remains Independent
+
+AI Matching & Intelligence is not dependent on the existence of User APIs.
+
+The platform can still interpret:
+
+* natural-language requests;  
+* products;  
+* services;  
+* businesses;  
+* suppliers;  
+* campaigns;  
+* opportunities;  
+* locations;  
+* budgets;  
+* requirements.
+
+The AI layer remains an intelligence layer rather than a financial authorization layer.
+
+AI must not independently:
+
+* transfer Espees;  
+* approve payments;  
+* authorize withdrawals;  
+* approve campaign disbursements;  
+* modify financial balances.
+
+---
+
+# 21\. Administrative Auditability
+
+Administrative audit logging is confirmed as a cross-platform requirement and is strengthened by this reconciliation.
+
+Every privileged administrative action that can affect:
+
+* identity;  
+* access;  
+* economic activity;  
+* financial state;  
+* trust;  
+* campaigns;  
+* platform configuration;  
+* sensitive user data;
+
+must produce an attributable audit event.
+
+An audit event should capture, where applicable:
+
+Actor
+
+Action
+
+Target
+
+Timestamp
+
+Before State
+
+After State
+
+Reason
+
+Result
+
+Request ID
+
+Correlation ID
+
+Session / Authentication Context
+
+Examples include:
+
+* user suspension;  
+* account restoration;  
+* business verification;  
+* campaign approval;  
+* campaign suspension;  
+* payment intervention;  
+* dispute resolution;  
+* role changes;  
+* permission changes;  
+* configuration changes;  
+* sensitive data access;  
+* administrative exports;  
+* security actions.
+
+Audit records complement business and financial records; they do not replace them.
+
+---
+
+# 22\. Financial Records vs Audit Records
+
+The system must distinguish:
+
+### Economic Record
+
+> What happened economically?
+
+Example:
+
+Payment
+
+Order \#ORD-1024
+
+Amount: 25 ESP
+
+Status: COMPLETED
+
+External Ref: XYZ123
+
+### Audit Record
+
+> Who changed something in the system and what did they do?
+
+Example:
+
+Admin: ADMIN-004
+
+Action: ORDER\_STATUS\_OVERRIDE
+
+Target: ORD-1024
+
+Before: PENDING
+
+After: COMPLETED
+
+Reason: Reconciliation Case \#REC-91
+
+These records serve different purposes and must not be collapsed into a single mechanism.
+
+---
+
+# 23\. Reconciliation System
+
+Because EENP interacts with external financial infrastructure, reconciliation remains a first-class subsystem.
+
+Every externally initiated financial operation should maintain:
+
+* EENP transaction ID;  
+* external transaction/payment reference;  
+* operation type;  
+* amount;  
+* currency;  
+* external status;  
+* internal status;  
+* timestamps;  
+* correlation ID;  
+* reconciliation status.
+
+Reconciliation states:
+
+MATCHED
+
+PENDING
+
+MISMATCHED
+
+MISSING\_EXTERNAL
+
+MISSING\_PLATFORM
+
+UNKNOWN
+
+No financial ambiguity should be silently converted into success or failure.
+
+---
+
+# 24\. Data Ownership Boundary
+
+The reconciled ownership model is:
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EENP
+
+&nbsp;┌─────────────────────────────────┐
+
+&nbsp;│ Identity                        │
+
+&nbsp;│ Profiles                        │
+
+&nbsp;│ Marketplace                     │
+
+&nbsp;│ Orders                          │
+
+&nbsp;│ Campaigns                       │
+
+&nbsp;│ Trust                           │
+
+&nbsp;│ Messaging                       │
+
+&nbsp;│ Discovery                       │
+
+&nbsp;│ AI                              │
+
+&nbsp;│ Audit                           │
+
+&nbsp;│ Reconciliation                  │
+
+&nbsp;└─────────────────────────────────┘
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│ Integration
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;▼
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ESPEES
+
+&nbsp;┌─────────────────────────────────┐
+
+&nbsp;│ Espees Wallet                   │
+
+&nbsp;│ Espees Balance                  │
+
+&nbsp;│ Espees Settlement               │
+
+&nbsp;│ Espees Transactions             │
+
+&nbsp;│ Merchant Payment Infrastructure │
+
+&nbsp;│ Vending Infrastructure          │
+
+&nbsp;└─────────────────────────────────┘
+
+This boundary should remain explicit throughout the implementation.
+
+---
+
+# 25\. Mobile Application Implications
+
+The current knowledge is sufficient to proceed substantially with mobile UI development.
+
+The UI should be designed around **economic states and user intent**, rather than exposing unresolved infrastructure.
+
+### Core navigation remains:
+
+Home
+
+Discover
+
+Pay
+
+Build
+
+Community
+
+Wallet
+
+---
+
+## 25.1 Home
+
+Home should act as the user's economic dashboard.
+
+Potential components:
+
+* Espees balance;  
+* recent activity;  
+* quick actions;  
+* discover nearby businesses;  
+* recommended services;  
+* funding opportunities;  
+* active orders;  
+* relevant requests;  
+* notifications.
+
+The exact balance implementation remains dependent on the final Espees User API.
+
+---
+
+## 25.2 Discover
+
+Discover should support:
+
+* businesses;  
+* products;  
+* services;  
+* suppliers;  
+* campaigns;  
+* economic opportunities.
+
+Search should eventually support both structured and natural-language discovery.
+
+---
+
+## 25.3 Pay
+
+The Pay experience should accommodate:
+
+* scan/search/select;  
+* payment details;  
+* confirmation;  
+* payment processing;  
+* payment completed;  
+* payment failed;  
+* payment pending;  
+* payment requiring verification.
+
+The UI must not assume every payment completes instantly.
+
+---
+
+## 25.4 Build
+
+Build represents economic creation.
+
+Potential areas:
+
+* create business;  
+* manage business;  
+* products;  
+* services;  
+* customer requests;  
+* supplier relationships;  
+* orders;  
+* business analytics.
+
+---
+
+## 25.5 Community
+
+Community should support:
+
+* campaigns;  
+* projects;  
+* funding opportunities;  
+* campaign updates;  
+* contributions;  
+* community initiatives.
+
+Funding availability should be represented independently from whether the underlying Espees disbursement capability has been fully integrated.
+
+---
+
+## 25.6 Wallet
+
+Wallet is the most integration-sensitive area.
+
+The UI should support the conceptual model:
+
+Wallet
+
+&nbsp;├── Balance
+
+&nbsp;├── Fund
+
+&nbsp;├── Send / Pay
+
+&nbsp;├── Receive
+
+&nbsp;├── Transactions
+
+&nbsp;└── Withdraw
+
+But individual actions should be capability-driven.
+
+For example:
+
+Wallet Capability State
+
+&nbsp;
+
+BALANCE\_AVAILABLE
+
+FUNDING\_AVAILABLE
+
+PAYMENT\_AVAILABLE
+
+RECEIVING\_AVAILABLE
+
+WITHDRAWAL\_AVAILABLE
+
+An unavailable capability should not appear as a broken feature.
+
+The platform can use feature/capability configuration to enable these actions when the relevant Espees functionality is confirmed.
+
+---
+
+# 26\. UI Principle for Unconfirmed Capabilities
+
+The mobile application should not be designed around assumptions about undocumented APIs.
+
+Instead, use:
+
+> **Capability-driven UI.**
+
+Example:
+
+Wallet
+
+&nbsp;├── Balance        → enabled when supported
+
+&nbsp;├── Fund           → enabled when gateway \+ settlement supported
+
+&nbsp;├── Pay            → enabled when payment capability supported
+
+&nbsp;├── Receive        → enabled when supported
+
+&nbsp;└── Withdraw       → enabled when officially supported
+
+This allows the product to progress while preserving architectural flexibility.
+
+---
+
+# 27\. What Can Proceed Immediately
+
+The following areas can proceed without waiting for Espees feedback:
+
+### Product/UI
+
+* onboarding;  
+* authentication;  
+* profiles;  
+* home;  
+* discover;  
+* business profiles;  
+* listings;  
+* search;  
+* marketplace;  
+* orders;  
+* messaging;  
+* campaigns;  
+* community;  
+* trust experiences;  
+* notifications;  
+* admin experiences;  
+* settings;  
+* help/support.
+
+### Backend
+
+* identity;  
+* profile;  
+* business;  
+* marketplace;  
+* messaging;  
+* campaigns;  
+* trust;  
+* notifications;  
+* audit;  
+* reconciliation framework;  
+* AI discovery;  
+* platform authorization.
+
+### Integration preparation
+
+* Espees adapter interface;  
+* Merchant adapter;  
+* Vending adapter;  
+* external reference model;  
+* payment state machine;  
+* reconciliation model;  
+* test integration environment.
+
+---
+
+# 28\. What Must Remain Pending
+
+The following should not be finalized as implemented capabilities until Espees provides confirmation:
+
+1. Programmatic Espees user account creation.  
+2. Programmatic Espees user wallet provisioning.  
+3. User wallet lookup.  
+4. User balance retrieval.  
+5. Direct user-to-user transfers.  
+6. User transaction history.  
+7. Espees withdrawal/redemption.  
+8. Local fiat → Espees settlement mechanism.  
+9. Espees webhooks.  
+10. Official API rate limits.  
+11. Official idempotency mechanisms.  
+12. Wallet/account linking mechanisms.  
+13. Production credentials and permissions.  
+14. Any use of Vending APIs for local-currency on-ramp.  
+15. Campaign-specific wallet/fund custody architecture.
+
+These should be treated as **external integration dependencies**, not assumed product capabilities.
+
+---
+
+# 29\. Current Integration Capability Matrix
+
+| Capability | Current Status | EENP Position |
+| :---- | :---- | :---- |
+| Merchant payment creation | CONFIRMED | Implement through adapter |
+| Hosted payment | CONFIRMED | Implement |
+| Payment confirmation | CONFIRMED | Implement |
+| Payment status | CONFIRMED | Normalize |
+| Vending token | CONFIRMED | Implement only where authorized |
+| Vending to wallet | CONFIRMED | Implement only where authorized |
+| Test user account | OBSERVED | Useful for testing |
+| User API | UNCONFIRMED | Await Espees |
+| User provisioning | DEPENDENT | Await official mechanism |
+| Wallet balance API | UNCONFIRMED | Await Espees |
+| User transaction history | UNCONFIRMED | Await Espees |
+| P2P transfer API | UNCONFIRMED | Await Espees |
+| Withdrawal | UNCONFIRMED | Await Espees |
+| Fiat → Espees settlement | DEPENDENT | Await official mechanism |
+| Webhooks | UNCONFIRMED | Await Espees |
+| Rate limits | UNCONFIRMED | Await Espees |
+| Idempotency | UNCONFIRMED | Platform-level protection required |
+
+---
+
+# 30\. Documents Affected
+
+The findings from this reconciliation affect the interpretation of:
+
+### Document 02 — PRD
+
+Wallet provisioning must be expressed as an external dependency rather than assumed API functionality.
+
+### Document 04 — System Architecture
+
+The Espees integration boundary becomes more explicit.
+
+### Document 05 — Espees Integration Specification
+
+Merchant and Vending APIs are currently the known public integration surfaces. User API remains pending.
+
+### Document 06 — Local Gateway Specification
+
+Espees settlement mechanism remains unresolved.
+
+### Document 12 — API Specification
+
+EENP APIs should expose platform capabilities without exposing undocumented Espees internals.
+
+### Document 13 — Data Model
+
+Wallet association must support provisioning states and external references.
+
+### Document 15 — Product Roadmap
+
+Espees capability validation remains a Phase 0 critical-path item.
+
+Documents 01, 07, 08, 09, 10, 11 and 14 remain fundamentally valid, subject to these integration boundaries.
+
+---
+
+# 31\. Revised Phase 0 Requirement
+
+Phase 0 must now explicitly produce an:
+
+## Espees Capability Baseline
+
+The baseline should document:
+
+* available APIs;  
+* restricted APIs;  
+* authentication requirements;  
+* wallet provisioning mechanism;  
+* user account mechanism;  
+* payment capabilities;  
+* vending capabilities;  
+* settlement mechanisms;  
+* withdrawal mechanisms;  
+* transaction status mechanisms;  
+* webhooks;  
+* rate limits;  
+* sandbox/test environment;  
+* production onboarding requirements;  
+* operational support process.
+
+No production financial architecture should be declared final until this baseline is established.
+
+---
+
+# 32\. Questions Pending Espees
+
+The current support request focuses on User API access.
+
+The complete technical clarification set should eventually establish:
+
+1. Is there a User API?  
+2. Is it private/restricted?  
+3. How are Espees user accounts created programmatically?  
+4. How are wallets provisioned?  
+5. Can an external application associate an existing Espees wallet with its own account?  
+6. How is user balance retrieved?  
+7. How are user transactions retrieved?  
+8. How are user-to-user transfers performed?  
+9. How are withdrawals/redemptions performed?  
+10. How should local-currency on-ramp be implemented?  
+11. Is Vending officially supported for this use case?  
+12. Are webhooks available?  
+13. What are the API rate limits?  
+14. Are idempotency keys supported?  
+15. What production approval is required?
+
+The answers will determine the final integration implementation.
+
+---
+
+# 33\. Interim Engineering Position
+
+Until Espees responds, EENP will follow these rules:
+
+1. **Do not invent undocumented Espees APIs.**  
+2. **Do not make undocumented API calls part of the architecture.**  
+3. **Do not treat the test user as proof of API availability.**  
+4. **Do not treat browser redirects as payment confirmation.**  
+5. **Do not treat Vending as a generic money-transfer mechanism without authorization.**  
+6. **Do not create a competing Espees monetary ledger.**  
+7. **Keep Espees integration behind an adapter boundary.**  
+8. **Keep wallet provisioning capability-driven.**  
+9. **Preserve unknown financial states.**  
+10. **Keep administrative actions auditable.**  
+11. **Build all EENP-controlled domains independently where possible.**  
+12. **Keep unresolved integration capabilities replaceable rather than hard-coded into the product.**
+
+---
+
+# 34\. Reconciled Architecture
+
+The current authoritative conceptual architecture is:
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EENP
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;┌───────────┴───────────┐
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│                       │
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Experience Layer         Intelligence
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│                       │
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├───────────────┐       │
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│               │       │
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Economic Core     Discovery   │
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│               │       │
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;┌──────┼──────┬────────┴───────┘
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│      │      │
+
+&nbsp;&nbsp;&nbsp;Marketplace Funding Trust
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│      │      │
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└──────┼──────┘
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Payment / Economic
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Services
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;┌──────┴──────┐
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│             │
+
+&nbsp;Local Gateway   Espees Integration
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│             │
+
+&nbsp;Local Rails    ┌────┴─────┐
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│          │
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Merchant     Vending
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│          │
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└────┬─────┘
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Espees
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Authoritative Monetary
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Infrastructure
+
+Cross-cutting all layers:
+
+Security
+
+Privacy
+
+Authorization
+
+Audit
+
+Observability
+
+Reconciliation
+
+Notifications
+
+---
+
+# 35\. Final Reconciled Position
+
+The EENP product direction remains unchanged.
+
+The new information primarily changes the **implementation certainty surrounding Espees user-level functionality**.
+
+The current position is therefore:
+
+> **EENP is an economic operating layer built around Espees. EENP owns identity, discovery, commerce, relationships, trust, community funding, intelligence, and platform orchestration. Espees remains the authoritative monetary infrastructure. Merchant and Vending APIs are currently known integration surfaces, while User API capabilities—including programmatic account and wallet provisioning—remain unconfirmed and are being treated as external dependencies pending official Espees guidance.**
+
+This allows product development to continue without compromising architectural correctness.
+
+The immediate engineering strategy is:
+
+> **Design the complete economic experience. Implement everything EENP controls. Isolate everything Espees controls. Make unresolved capabilities configurable. Do not invent the missing integration surface.**
+
+---
+
+# 36\. Immediate Product Design Direction
+
+For the current mobile UI work, the design should therefore concentrate on the **economic experience**, not the API uncertainty.
+
+The primary screens can proceed around:
+
+Onboarding
+
+&nbsp;&nbsp;&nbsp;&nbsp;↓
+
+Home
+
+&nbsp;&nbsp;&nbsp;&nbsp;↓
+
+Discover
+
+&nbsp;&nbsp;&nbsp;&nbsp;├── Businesses
+
+&nbsp;&nbsp;&nbsp;&nbsp;├── Products
+
+&nbsp;&nbsp;&nbsp;&nbsp;├── Services
+
+&nbsp;&nbsp;&nbsp;&nbsp;├── Suppliers
+
+&nbsp;&nbsp;&nbsp;&nbsp;└── Opportunities
+
+&nbsp;&nbsp;&nbsp;&nbsp;↓
+
+Pay
+
+&nbsp;&nbsp;&nbsp;&nbsp;├── Pay
+
+&nbsp;&nbsp;&nbsp;&nbsp;├── Receive
+
+&nbsp;&nbsp;&nbsp;&nbsp;└── Payment History
+
+&nbsp;&nbsp;&nbsp;&nbsp;↓
+
+Build
+
+&nbsp;&nbsp;&nbsp;&nbsp;├── My Business
+
+&nbsp;&nbsp;&nbsp;&nbsp;├── Products
+
+&nbsp;&nbsp;&nbsp;&nbsp;├── Services
+
+&nbsp;&nbsp;&nbsp;&nbsp;├── Orders
+
+&nbsp;&nbsp;&nbsp;&nbsp;└── Customers / Suppliers
+
+&nbsp;&nbsp;&nbsp;&nbsp;↓
+
+Community
+
+&nbsp;&nbsp;&nbsp;&nbsp;├── Campaigns
+
+&nbsp;&nbsp;&nbsp;&nbsp;├── Projects
+
+&nbsp;&nbsp;&nbsp;&nbsp;└── Contributions
+
+&nbsp;&nbsp;&nbsp;&nbsp;↓
+
+Wallet
+
+&nbsp;&nbsp;&nbsp;&nbsp;├── Balance
+
+&nbsp;&nbsp;&nbsp;&nbsp;├── Fund
+
+&nbsp;&nbsp;&nbsp;&nbsp;├── Transactions
+
+&nbsp;&nbsp;&nbsp;&nbsp;└── Withdrawal
+
+The **Wallet** and **Funding** areas should be designed with capability states so that unresolved Espees functionality can be enabled later without redesigning the application.
+
+---
+
+## 37\. Guiding Principle
+
+> **Build what we know. Isolate what we don't know. Never assume what we haven't verified.**
+
+This principle becomes the working basis for EENP development until the Espees support request is resolved.
+
+This gives you a stable basis for the UI work now. In particular, I would **not wait on Espees to design the screens**—just make Wallet/Fund/Withdraw/payment-processing states flexible enough that we can wire the confirmed capabilities in later.
+
+&nbsp;
