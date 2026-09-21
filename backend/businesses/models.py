@@ -1,7 +1,10 @@
 import uuid
 
 from django.conf import settings
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+
+from core.validators import validate_image_size
 from django.utils.text import slugify
 
 
@@ -52,9 +55,20 @@ class Business(models.Model):
         related_name='businesses',
     )
     location = models.CharField(max_length=128, blank=True, default='')
+    latitude = models.DecimalField(
+        max_digits=9, decimal_places=6, null=True, blank=True,
+        validators=[MinValueValidator(-90), MaxValueValidator(90)],
+    )
+    longitude = models.DecimalField(
+        max_digits=9, decimal_places=6, null=True, blank=True,
+        validators=[MinValueValidator(-180), MaxValueValidator(180)],
+    )
 
     contact_email = models.EmailField(blank=True, default='')
     contact_phone = models.CharField(max_length=32, blank=True, default='')
+
+    logo = models.ImageField(upload_to='business-logos/', null=True, blank=True, validators=[validate_image_size])
+    cover_image = models.ImageField(upload_to='business-covers/', null=True, blank=True, validators=[validate_image_size])
 
     verification_status = models.CharField(
         max_length=16,
@@ -105,3 +119,36 @@ class BusinessMembership(models.Model):
 
     def __str__(self):
         return f'{self.user} — {self.role} of {self.business}'
+
+class VerificationRequest(models.Model):
+    """A business's application to be verified, reviewed by platform staff."""
+
+    class Status(models.TextChoices):
+        PENDING = 'pending', 'Pending'
+        APPROVED = 'approved', 'Approved'
+        REJECTED = 'rejected', 'Rejected'
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    business = models.ForeignKey(Business, on_delete=models.CASCADE, related_name='verification_requests')
+    submitted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='verification_submissions'
+    )
+    legal_name = models.CharField(max_length=255)
+    registration_number = models.CharField(max_length=64, blank=True, default='')
+    document = models.FileField(upload_to='verification-documents/', null=True, blank=True)
+    notes = models.TextField(blank=True, default='')
+
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.PENDING)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='+'
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    rejection_reason = models.TextField(blank=True, default='')
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.business} verification ({self.status})'

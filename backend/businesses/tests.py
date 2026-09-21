@@ -88,6 +88,22 @@ class BusinessApiTests(APITestCase):
         resp = self.client.delete(reverse('businesses:business-detail', args=[self.business.id]))
         self.assertEqual(resp.status_code, status.HTTP_204_NO_CONTENT)
 
+    def test_mine_filter_lists_only_businesses_the_user_manages(self):
+        theirs = Business.objects.create(owner=self.other, name='Other Shop')
+        BusinessMembership.objects.create(user=self.other, business=theirs, role=BusinessMembership.Role.OWNER)
+        staffed = Business.objects.create(owner=self.other, name='Staffed Shop')
+        BusinessMembership.objects.create(user=self.owner, business=staffed, role=BusinessMembership.Role.ADMIN)
+        resp = self.client.get(reverse('businesses:business-list'), {'mine': 'true'})
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        names = {b['name'] for b in resp.data['results']}
+        self.assertEqual(names, {'Tante Grill', 'Staffed Shop'})
+
+    def test_mine_filter_is_empty_for_anonymous(self):
+        self.client.force_authenticate(user=None)
+        resp = self.client.get(reverse('businesses:business-list'), {'mine': 'true'})
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.data['results'], [])
+
     def test_search_filter(self):
         Business.objects.create(owner=self.admin, name='Laptop Doctor', description='Computer clinic')
         resp = self.client.get(reverse('businesses:business-list'), {'search': 'computer'})

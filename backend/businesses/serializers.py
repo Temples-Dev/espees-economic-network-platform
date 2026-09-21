@@ -3,7 +3,8 @@ from rest_framework import serializers
 
 from reviews.models import Review
 
-from .models import Business, BusinessMembership, Category
+from core.validators import validate_image_size
+from .models import Business, BusinessMembership, Category, VerificationRequest
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -39,8 +40,12 @@ class BusinessSerializer(serializers.ModelSerializer):
             'description',
             'category',
             'location',
+            'latitude',
+            'longitude',
             'contact_email',
             'contact_phone',
+            'logo',
+            'cover_image',
             'verification_status',
             'is_active',
             'average_rating',
@@ -52,6 +57,13 @@ class BusinessSerializer(serializers.ModelSerializer):
             'id', 'slug', 'verification_status', 'is_active',
             'average_rating', 'review_count', 'created_at', 'updated_at',
         ]
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        distance = getattr(instance, 'distance_km', None)
+        if distance is not None:
+            data['distance_km'] = round(float(distance), 1)
+        return data
 
     def get_average_rating(self, obj):
         average = getattr(obj, 'average_rating', None)
@@ -75,3 +87,14 @@ class BusinessDetailSerializer(BusinessSerializer):
 
     class Meta(BusinessSerializer.Meta):
         fields = BusinessSerializer.Meta.fields + ['owner', 'members']
+
+class VerificationRequestSerializer(serializers.ModelSerializer):
+    document = serializers.FileField(required=False, allow_null=True, validators=[validate_image_size])
+
+    class Meta:
+        model = VerificationRequest
+        fields = [
+            'id', 'business', 'legal_name', 'registration_number', 'document', 'notes',
+            'status', 'rejection_reason', 'reviewed_at', 'created_at',
+        ]
+        read_only_fields = ['id', 'business', 'status', 'rejection_reason', 'reviewed_at', 'created_at']
