@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Notification, NotificationPreference
+from .models import DeviceToken, Notification, NotificationPreference
 
 
 class NotificationSerializer(serializers.ModelSerializer):
@@ -35,3 +35,9 @@ class NotificationPreferenceSerializer(serializers.ModelSerializer):
         model = NotificationPreference
         fields = ['in_app', 'email', 'push', 'sms', 'updated_at']
         read_only_fields = ['updated_at']
+
+class DeviceTokenSerializer(serializers.Serializer):
+    """Plain serializer: the token is unique in the database but re-registering it is not an error."""
+
+    token = serializers.CharField(max_length=255)
+    platform = serializers.ChoiceField(choices=DeviceToken.Platform.choices)

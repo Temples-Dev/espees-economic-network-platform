@@ -9,5 +9,6 @@ router = routers.DefaultRouter()
 router.register('notifications', views.NotificationViewSet, basename='notification')
 
 urlpatterns = router.urls + [
+    path('devices/', views.DeviceTokenView.as_view(), name='devices'),
     path('notification-preferences/', views.NotificationPreferencesView.as_view(), name='notification-preferences'),
 ]

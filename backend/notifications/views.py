@@ -2,9 +2,10 @@ from django.utils import timezone
 from rest_framework import generics, mixins, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
-from .models import Notification, NotificationPreference
-from .serializers import NotificationPreferenceSerializer, NotificationSerializer
+from .models import DeviceToken, Notification, NotificationPreference
+from .serializers import DeviceTokenSerializer, NotificationPreferenceSerializer, NotificationSerializer
 
 
 class NotificationViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
@@ -42,3 +43,24 @@ class NotificationPreferencesView(generics.RetrieveUpdateAPIView):
     def get_object(self):
         preference, _ = NotificationPreference.objects.get_or_create(user=self.request.user)
         return preference
+
+class DeviceTokenView(APIView):
+    """Register (POST) or remove (DELETE) this device's push token for the signed-in member."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        serializer = DeviceTokenSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        device, created = DeviceToken.objects.update_or_create(
+            token=serializer.validated_data['token'],
+            defaults={'user': request.user, 'platform': serializer.validated_data['platform']},
+        )
+        return Response(
+            {'token': device.token, 'platform': device.platform},
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
+
+    def delete(self, request):
+        DeviceToken.objects.filter(user=request.user, token=request.data.get('token', '')).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

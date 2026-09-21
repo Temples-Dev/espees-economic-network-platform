@@ -75,3 +75,20 @@ class NotificationPreference(models.Model):
 
     def __str__(self):
         return f'{self.user}: in-app={self.in_app} email={self.email} push={self.push} sms={self.sms}'
+
+class DeviceToken(models.Model):
+    """A push-notification token for one installed copy of the app (Expo or native)."""
+
+    class Platform(models.TextChoices):
+        IOS = 'ios', 'iOS'
+        ANDROID = 'android', 'Android'
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='device_tokens')
+    token = models.CharField(max_length=255, unique=True)
+    platform = models.CharField(max_length=8, choices=Platform.choices)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f'{self.user} · {self.platform}'
