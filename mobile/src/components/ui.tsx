@@ -15,7 +15,7 @@ import { Link, type Href } from 'expo-router';
 
 import { ThemedText } from './themed-text';
 import { ThemedView } from './themed-view';
-import { Brand, MaxContentWidth, Spacing } from '@/constants/theme';
+import { Brand, MaxContentWidth, Spacing, TabBar } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth';
 
@@ -78,7 +78,12 @@ export function Card({ children }: { children: ReactNode }) {
   );
 }
 
-export function Field({ label, style, ...rest }: { label: string } & TextInputProps) {
+export function Field({
+  label,
+  error,
+  style,
+  ...rest
+}: { label: string; error?: string } & TextInputProps) {
   const theme = useTheme();
   return (
     <View style={styles.field}>
@@ -86,18 +91,38 @@ export function Field({ label, style, ...rest }: { label: string } & TextInputPr
         {label}
       </ThemedText>
       <TextInput
+        accessibilityLabel={label}
         style={[
           styles.input,
           {
             backgroundColor: theme.backgroundElement,
             color: theme.text,
-            borderColor: theme.textSecondary,
+            borderColor: error ? '#c0392b' : theme.textSecondary,
           },
           style,
         ]}
         placeholderTextColor={theme.textSecondary}
         {...rest}
       />
+      {!!error && <ThemedText style={styles.fieldError}>{error}</ThemedText>}
+    </View>
+  );
+}
+
+/** Three-segment password strength bar. */
+export function StrengthMeter({ strength }: { strength: 'weak' | 'fair' | 'strong' }) {
+  const filled = strength === 'weak' ? 1 : strength === 'fair' ? 2 : 3;
+  const color = strength === 'weak' ? '#c0392b' : strength === 'fair' ? Brand.gold : '#1e7e34';
+  return (
+    <View style={styles.meterWrap}>
+      <View style={styles.meter}>
+        {[1, 2, 3].map((n) => (
+          <View key={n} style={[styles.meterSeg, { backgroundColor: n <= filled ? color : '#E3E5EC' }]} />
+        ))}
+      </View>
+      <ThemedText type="small" style={{ color }}>
+        {strength === 'weak' ? 'Weak' : strength === 'fair' ? 'Fair' : 'Strong'}
+      </ThemedText>
     </View>
   );
 }
@@ -119,6 +144,7 @@ export function PrimaryButton({
   const gold = tone === 'gold';
   return (
     <Pressable
+      accessibilityRole="button"
       onPress={onPress}
       disabled={disabled}
       style={[
@@ -148,7 +174,10 @@ export function OutlineButton({
   const theme = useTheme();
   const c = color ?? theme.primary;
   return (
-    <Pressable onPress={onPress} style={[styles.button, styles.outline, { borderColor: c }]}>
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={[styles.button, styles.outline, { borderColor: c }]}>
       <ThemedText style={[styles.buttonLabel, { color: c }]}>{title}</ThemedText>
     </Pressable>
   );
@@ -566,7 +595,7 @@ const styles = StyleSheet.create({
   scroll: {
     paddingHorizontal: Spacing.four,
     paddingTop: Spacing.six,
-    paddingBottom: Spacing.six,
+    paddingBottom: TabBar.clearance,
     gap: Spacing.three,
   },
   centered: {
@@ -615,6 +644,25 @@ const styles = StyleSheet.create({
   },
   error: {
     color: '#c0392b',
+  },
+  fieldError: {
+    color: '#c0392b',
+    fontSize: 12,
+  },
+  meterWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+  },
+  meter: {
+    flex: 1,
+    flexDirection: 'row',
+    gap: Spacing.one,
+  },
+  meterSeg: {
+    flex: 1,
+    height: 4,
+    borderRadius: 2,
   },
   notice: {
     color: '#1e7e34',

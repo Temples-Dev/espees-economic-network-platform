@@ -79,5 +79,13 @@ export const Spacing = {
   six: 64,
 } as const;
 
+/** Floating pill tab bar: size and the room screens must leave beneath their content. */
+export const TabBar = {
+  height: 64,
+  gap: 16,
+  /** Bar height + gap + the tallest common bottom inset + breathing room. */
+  clearance: 120,
+} as const;
+
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
 export const MaxContentWidth = 800;

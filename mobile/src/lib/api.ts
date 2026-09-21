@@ -140,6 +140,13 @@ class Api {
       body: JSON.stringify(body),
     }) as Promise<T>;
   }
+
+  patch<T = unknown>(path: string, body: unknown): Promise<T> {
+    return this.request(path, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }) as Promise<T>;
+  }
 }
 
 export const api = new Api();
@@ -159,6 +166,12 @@ export function errorMessage(err: unknown, fallback: string): string {
     const inner = detail?.detail;
     if (typeof inner === 'string') return inner;
     if (Array.isArray(inner)) return inner.join(', ');
+    if (detail && typeof detail === 'object') {
+      const messages = Object.values(detail).flatMap((v) =>
+        Array.isArray(v) ? v.filter((m): m is string => typeof m === 'string') : [],
+      );
+      if (messages.length > 0) return messages.join(' ');
+    }
   }
   return fallback;
 }
