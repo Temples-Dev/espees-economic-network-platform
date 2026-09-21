@@ -11,7 +11,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 
 from . import security, services
-from .models import User, Wallet
+from .models import RefreshRotation, User, Wallet
 from .serializers import RegisterSerializer, UserSerializer
 
 logger = logging.getLogger(__name__)
@@ -118,6 +118,87 @@ class LoginView(APIView):
 
         refresh = RefreshToken.for_user(user)
         return Response({'refresh': str(refresh), 'access': str(refresh.access_token)})
+
+
+class RefreshRequestSerializer(serializers.Serializer):
+    refresh = serializers.CharField()
+
+
+class RotatingRefreshView(APIView):
+    """Rotate refresh tokens with reuse (theft) detection.
+
+    Presenting a valid refresh token blacklists it and returns a fresh pair.
+    Presenting an already-rotated token replays a consumed credential: the
+    whole token family is revoked, a security notification is raised, and the
+    client must sign in again.
+    """
+
+    permission_classes = [permissions.AllowAny]
+    http_method_names = ['post']
+
+    @extend_schema(
+        tags=['accounts'],
+        summary='Rotate refresh token',
+        description=(
+            'Returns a fresh access/refresh pair and blacklists the presented '
+            'refresh token. Replaying a rotated token revokes all sessions.'
+        ),
+        request=RefreshRequestSerializer,
+        responses={
+            200: OpenApiResponse(response=TokenPairSerializer, description='Fresh access and refresh tokens'),
+            401: OpenApiResponse(description='Invalid, expired, or reused refresh token'),
+        },
+    )
+    def post(self, request):
+        raw = request.data.get('refresh') or ''
+        try:
+            token = RefreshToken(raw)
+        except Exception:
+            return self._handle_invalid(request, raw)
+
+        try:
+            user = User.objects.get(pk=token['user_id'])
+        except (KeyError, User.DoesNotExist):
+            return Response(
+                {'detail': 'Invalid refresh token.'},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        jti = token['jti']
+        rotated = RefreshToken.for_user(user)
+        token.blacklist()
+        RefreshRotation.objects.get_or_create(
+            consumed_jti=jti,
+            defaults={'user': user, 'next_jti': rotated['jti']},
+        )
+        return Response({'refresh': str(rotated), 'access': str(rotated.access_token)})
+
+    def _handle_invalid(self, request, raw):
+        jti = security.unverified_jti(raw)
+        if jti:
+            rotation = (
+                RefreshRotation.objects.filter(consumed_jti=jti).select_related('user').first()
+            )
+            if rotation is not None:
+                self._revoke_family(rotation.user)
+                security.notify_security(
+                    rotation.user,
+                    'Suspicious sign-in activity',
+                    'A used sign-in token was presented again. '
+                    'All sessions have been signed out as a precaution.',
+                )
+                return Response(
+                    {'detail': 'Session revoked for security reasons. Please sign in again.'},
+                    status=status.HTTP_401_UNAUTHORIZED,
+                )
+        return Response(
+            {'detail': 'Invalid refresh token.'},
+            status=status.HTTP_401_UNAUTHORIZED,
+        )
+
+    def _revoke_family(self, user):
+        for outstanding in OutstandingToken.objects.filter(user=user):
+            BlacklistedToken.objects.get_or_create(token=outstanding)
 
 
 class LogoutView(APIView):

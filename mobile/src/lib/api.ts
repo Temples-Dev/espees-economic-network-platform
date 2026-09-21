@@ -84,8 +84,9 @@ class Api {
       await this.clearTokens();
       return false;
     }
-    const data = (await res.json()) as { access: string };
-    await this.setTokens(data.access, refresh);
+    const data = (await res.json()) as { access: string; refresh?: string };
+    // Rotation: adopt the fresh refresh token when the server issues one.
+    await this.setTokens(data.access, data.refresh ?? refresh);
     return true;
   }
 

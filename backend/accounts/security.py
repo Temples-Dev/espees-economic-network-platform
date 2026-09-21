@@ -73,3 +73,17 @@ def notify_security(recipient, title, message):
     from notifications.services import notify
 
     notify(recipient, 'security', title, message)
+
+
+def unverified_jti(raw):
+    """Extract the jti claim without consulting the blacklist.
+
+    Used only for reuse detection on tokens that already failed validation —
+    never for authentication.
+    """
+    from rest_framework_simplejwt.tokens import UntypedToken
+
+    try:
+        return UntypedToken(raw)['jti']
+    except Exception:
+        return None

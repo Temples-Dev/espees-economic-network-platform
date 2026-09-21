@@ -162,3 +162,61 @@ class LoginHardeningTests(APITestCase):
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertEqual(len(resp.data['sessions']), 1)
         self.assertIn('device_key', resp.data['sessions'][0])
+
+
+class RefreshRotationTests(APITestCase):
+    def setUp(self):
+        self.login_url = reverse('accounts:login')
+        self.refresh_url = reverse('accounts:token_refresh')
+        self.user = User.objects.create_user(email='rotate@example.com', password='strong-password-1')
+
+    def _login(self):
+        return self.client.post(
+            self.login_url, {'email': 'rotate@example.com', 'password': 'strong-password-1'}, format='json'
+        ).data
+
+    def test_refresh_rotates_pair(self):
+        tokens = self._login()
+        resp = self.client.post(self.refresh_url, {'refresh': tokens['refresh']}, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertIn('access', resp.data)
+        self.assertIn('refresh', resp.data)
+        self.assertNotEqual(resp.data['refresh'], tokens['refresh'])
+        # The fresh token works for a further rotation.
+        again = self.client.post(self.refresh_url, {'refresh': resp.data['refresh']}, format='json')
+        self.assertEqual(again.status_code, status.HTTP_200_OK)
+
+    def test_reused_token_revokes_family_and_notifies(self):
+        first = self._login()
+        second = self._login()
+        rotated = self.client.post(self.refresh_url, {'refresh': first['refresh']}, format='json')
+        self.assertEqual(rotated.status_code, status.HTTP_200_OK)
+
+        replay = self.client.post(self.refresh_url, {'refresh': first['refresh']}, format='json')
+        self.assertEqual(replay.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertIn('revoked', replay.data['detail'])
+        self.assertTrue(
+            Notification.objects.filter(
+                recipient=self.user, category='security', title='Suspicious sign-in activity'
+            ).exists()
+        )
+        # The whole family is revoked: the other live session is dead too.
+        dead = self.client.post(self.refresh_url, {'refresh': second['refresh']}, format='json')
+        self.assertEqual(dead.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_logged_out_token_is_plain_401(self):
+        tokens = self._login()
+        self.client.force_authenticate(user=self.user)
+        self.client.post(reverse('accounts:logout'), {'refresh': tokens['refresh']}, format='json')
+        resp = self.client.post(self.refresh_url, {'refresh': tokens['refresh']}, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertNotIn('revoked', resp.data['detail'])
+        self.assertFalse(
+            Notification.objects.filter(
+                recipient=self.user, category='security', title='Suspicious sign-in activity'
+            ).exists()
+        )
+
+    def test_malformed_refresh_is_401(self):
+        resp = self.client.post(self.refresh_url, {'refresh': 'not-a-token'}, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_401_UNAUTHORIZED)

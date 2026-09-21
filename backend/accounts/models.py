@@ -129,3 +129,24 @@ class LoginActivity(models.Model):
 
     def __str__(self):
         return f'{self.email}: {"ok" if self.success else "failed"} @ {self.device_key[:12]}'
+
+
+class RefreshRotation(models.Model):
+    """Record of a consumed refresh token and the token that replaced it.
+
+    Enables refresh-token rotation with reuse (theft) detection: presenting an
+    already-rotated token replays a consumed credential, which revokes the
+    whole token family and raises a security notification.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='refresh_rotations')
+    consumed_jti = models.CharField(max_length=255, unique=True)
+    next_jti = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'rotation for {self.user.email}: {self.consumed_jti[:8]} -> {self.next_jti[:8]}'
