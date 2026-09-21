@@ -9,12 +9,14 @@ import {
   Field,
   Hero,
   Loading,
+  NoticeText,
+  OutlineButton,
   PrimaryButton,
   Screen,
 } from '@/components/ui';
 import { Brand, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { errorMessage } from '@/lib/api';
+import { api, errorMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 
 export default function SignInScreen() {
@@ -24,6 +26,8 @@ export default function SignInScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
+  const [showReset, setShowReset] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,7 +62,58 @@ export default function SignInScreen() {
     }
   }
 
+  async function submitReset() {
+    setError(null);
+    setBusy(true);
+    try {
+      await api.post('/api/v1/auth/password-reset/', { email: email.trim() });
+      setResetSent(true);
+    } catch (err) {
+      setError(errorMessage(err, 'Request failed. Try again.'));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (loading) return <Loading />;
+
+  if (showReset) {
+    return (
+      <Screen>
+        <Hero title="Reset your" accent="password" copy="Enter your account email for a reset link." />
+        <Card>
+          {resetSent ? (
+            <NoticeText message="If the account exists, a reset email has been sent." />
+          ) : (
+            <>
+              <Field
+                label="Email"
+                autoCapitalize="none"
+                keyboardType="email-address"
+                value={email}
+                onChangeText={setEmail}
+              />
+              <ErrorText message={error} />
+              <PrimaryButton
+                tone="gold"
+                title={busy ? 'Sending…' : 'Send reset link'}
+                onPress={() => void submitReset()}
+                disabled={busy}
+              />
+            </>
+          )}
+          <OutlineButton
+            title="Back to sign-in"
+            onPress={() => {
+              setShowReset(false);
+              setResetSent(false);
+              setError(null);
+            }}
+          />
+        </Card>
+      </Screen>
+    );
+  }
 
   if (needsCode) {
     return (
@@ -122,6 +177,17 @@ export default function SignInScreen() {
           onPress={() => void submit()}
           disabled={busy}
         />
+        {mode === 'login' && (
+          <Pressable
+            onPress={() => {
+              setShowReset(true);
+              setError(null);
+            }}>
+            <ThemedText type="small" style={{ color: Brand.royal, textAlign: 'center' }}>
+              Forgot password?
+            </ThemedText>
+          </Pressable>
+        )}
       </Card>
       <ThemedView style={{ alignItems: 'center' }}>
         <ThemedText type="small" themeColor="textSecondary">

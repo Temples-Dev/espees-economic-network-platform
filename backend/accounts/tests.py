@@ -1,3 +1,4 @@
+from django.test import override_settings
 from django.urls import reverse
 from notifications.models import Notification
 from rest_framework import status
@@ -313,3 +314,93 @@ class TwoFactorTests(APITestCase):
         )
         self.assertEqual(direct.status_code, status.HTTP_200_OK)
         self.assertIn('access', direct.data)
+
+class PasswordResetTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(email='reset@example.com', password='strong-password-1')
+
+    def _request_reset(self, email='reset@example.com'):
+        return self.client.post(
+            reverse('accounts:password_reset'), {'email': email}, format='json'
+        )
+
+    def _link_parts(self, body):
+        import re
+
+        match = re.search(r'uid=([^\s&]+)&token=([^\s]+)', body)
+        self.assertIsNotNone(match)
+        assert match is not None
+        return match.group(1), match.group(2)
+
+    @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+    def test_reset_sends_email_with_link(self):
+        from django.core import mail
+
+        resp = self._request_reset()
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ['reset@example.com'])
+        uid, token = self._link_parts(mail.outbox[0].body)
+        self.assertTrue(uid)
+        self.assertTrue(token)
+
+    @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+    def test_reset_unknown_email_succeeds_silently(self):
+        from django.core import mail
+
+        resp = self._request_reset(email='nobody@example.com')
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(mail.outbox), 0)
+
+    @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+    def test_confirm_resets_password_and_revokes_sessions(self):
+        from django.core import mail
+
+        tokens = self.client.post(
+            reverse('accounts:login'),
+            {'email': 'reset@example.com', 'password': 'strong-password-1'},
+            format='json',
+        ).data
+        self._request_reset()
+        uid, token = self._link_parts(mail.outbox[0].body)
+
+        resp = self.client.post(
+            reverse('accounts:password_reset_confirm'),
+            {'uid': uid, 'token': token, 'new_password': 'new-strong-password-2'},
+            format='json',
+        )
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertTrue(
+            Notification.objects.filter(recipient=self.user, category='security', title='Password reset').exists()
+        )
+        # Old session is revoked.
+        dead = self.client.post(reverse('accounts:token_refresh'), {'refresh': tokens['refresh']}, format='json')
+        self.assertEqual(dead.status_code, status.HTTP_401_UNAUTHORIZED)
+        # New password works.
+        login = self.client.post(
+            reverse('accounts:login'),
+            {'email': 'reset@example.com', 'password': 'new-strong-password-2'},
+            format='json',
+        )
+        self.assertEqual(login.status_code, status.HTTP_200_OK)
+
+    def test_confirm_rejects_bad_token(self):
+        resp = self.client.post(
+            reverse('accounts:password_reset_confirm'),
+            {'uid': 'Mg', 'token': 'bad-token', 'new_password': 'new-strong-password-2'},
+            format='json',
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+    def test_confirm_rejects_weak_password(self):
+        from django.core import mail
+
+        self._request_reset()
+        uid, token = self._link_parts(mail.outbox[0].body)
+        resp = self.client.post(
+            reverse('accounts:password_reset_confirm'),
+            {'uid': uid, 'token': token, 'new_password': 'short'},
+            format='json',
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)

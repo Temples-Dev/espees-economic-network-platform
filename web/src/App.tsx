@@ -46,6 +46,8 @@ function LoginForm({ onDone }: { onDone: (u: User) => void }) {
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
   const [needsCode, setNeedsCode] = useState(false);
+  const [showReset, setShowReset] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -96,6 +98,65 @@ function LoginForm({ onDone }: { onDone: (u: User) => void }) {
     } finally {
       setBusy(false);
     }
+  }
+
+  async function submitReset(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setBusy(true);
+    try {
+      await api.post("/api/v1/auth/password-reset/", { email });
+      setResetSent(true);
+    } catch {
+      setError("Request failed. Try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (showReset) {
+    return (
+      <main className="mx-auto mt-16 max-w-sm px-6">
+        <h1 className="text-2xl font-semibold">Reset password</h1>
+        <p className="mt-1 text-sm text-zinc-500">
+          Enter your account email and we will send a reset link.
+        </p>
+        {resetSent ? (
+          <p className="mt-4 text-sm text-emerald-400">
+            If the account exists, a reset email has been sent.
+          </p>
+        ) : (
+          <form onSubmit={submitReset} className="mt-4 space-y-4">
+            <input
+              type="email"
+              required
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full rounded border border-zinc-700 bg-zinc-900 px-3 py-2"
+              autoComplete="email"
+            />
+            {error && <p className="text-sm text-red-400">{error}</p>}
+            <button
+              disabled={busy}
+              className="w-full rounded-lg bg-royal px-4 py-2 font-medium text-white hover:bg-deep disabled:opacity-50"
+            >
+              {busy ? "Sending…" : "Send reset link"}
+            </button>
+          </form>
+        )}
+        <button
+          onClick={() => {
+            setShowReset(false);
+            setResetSent(false);
+            setError(null);
+          }}
+          className="mt-4 w-full text-sm text-zinc-400 hover:text-zinc-200"
+        >
+          Back to sign-in
+        </button>
+      </main>
+    );
   }
 
   if (needsCode) {
@@ -185,6 +246,18 @@ function LoginForm({ onDone }: { onDone: (u: User) => void }) {
         >
           {busy ? "Working…" : mode === "login" ? "Sign in" : "Create account"}
         </button>
+        {mode === "login" && (
+          <button
+            type="button"
+            onClick={() => {
+              setShowReset(true);
+              setError(null);
+            }}
+            className="w-full text-sm text-zinc-400 hover:text-zinc-200"
+          >
+            Forgot password?
+          </button>
+        )}
       </form>
     </main>
   );

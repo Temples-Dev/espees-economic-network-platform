@@ -13,6 +13,12 @@ urlpatterns = [
     path('auth/2fa/enroll/', views.TwoFactorEnrollView.as_view(), name='two_factor_enroll'),
     path('auth/2fa/confirm/', views.TwoFactorConfirmView.as_view(), name='two_factor_confirm'),
     path('auth/2fa/disable/', views.TwoFactorDisableView.as_view(), name='two_factor_disable'),
+    path('auth/password-reset/', views.PasswordResetView.as_view(), name='password_reset'),
+    path(
+        'auth/password-reset/confirm/',
+        views.PasswordResetConfirmView.as_view(),
+        name='password_reset_confirm',
+    ),
     path('auth/change-password/', views.ChangePasswordView.as_view(), name='change_password'),
     path('auth/sessions/', views.SessionsView.as_view(), name='sessions'),
     path('me/', views.MeView.as_view(), name='me'),

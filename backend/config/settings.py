@@ -188,6 +188,10 @@ CORS_ALLOW_ALL_ORIGINS = DEBUG
 # Frontend URL (for email links and future web surfaces)
 FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:8081')
 
+# Email (console backend in dev; set EMAIL_BACKEND to SMTP in production)
+EMAIL_BACKEND = env('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='EENP <no-reply@localhost>')
+
 # TLS is terminated by the proxy in production — never redirect here.
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 # SECURE_SSL_REDIRECT = True  # do NOT set — causes redirect loops behind the proxy
