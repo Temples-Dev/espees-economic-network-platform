@@ -24,34 +24,25 @@ export const Brand = {
   white: '#FFFFFF',
 } as const;
 
+/**
+ * Single light palette. Dark mode is intentionally out of scope until the
+ * light design is finalized — every consumer reads these values directly
+ * with no scheme branching.
+ */
 export const Colors = {
-  light: {
-    text: Brand.ink,
-    background: Brand.paper,
-    backgroundElement: Brand.white,
-    backgroundSelected: '#E3E8F7',
-    textSecondary: Brand.body,
-    primary: Brand.royal,
-    primaryDeep: Brand.deep,
-    gold: Brand.gold,
-    bronze: Brand.bronze,
-    brandText: Brand.brandText,
-  },
-  dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
-    primary: Brand.royal,
-    primaryDeep: Brand.deep,
-    gold: Brand.gold,
-    bronze: Brand.bronze,
-    brandText: Brand.gold,
-  },
+  text: Brand.ink,
+  background: Brand.paper,
+  backgroundElement: Brand.white,
+  backgroundSelected: '#E3E8F7',
+  textSecondary: Brand.body,
+  primary: Brand.royal,
+  primaryDeep: Brand.deep,
+  gold: Brand.gold,
+  bronze: Brand.bronze,
+  brandText: Brand.brandText,
 } as const;
 
-export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
+export type ThemeColor = keyof typeof Colors;
 
 export const Fonts = Platform.select({
   ios: {
