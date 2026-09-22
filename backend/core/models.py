@@ -5,7 +5,11 @@ from django.db import models
 
 
 class AuditLog(models.Model):
-    """Append-only record of a sensitive action: who did what, to which object, from where (PRD 28)."""
+    """Append-only record of a sensitive action: who did what, to which object, from where (PRD 28, Doc16 §21).
+
+    Audit records ("who changed what, why") are kept distinct from
+    economic/financial records ("what happened economically", Doc16 §22).
+    """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     actor = models.ForeignKey(
@@ -16,6 +20,14 @@ class AuditLog(models.Model):
     target_id = models.CharField(max_length=64, blank=True, default='')
     metadata = models.JSONField(default=dict, blank=True)
     ip_address = models.GenericIPAddressField(null=True, blank=True)
+    # Doc16 §21 attribution fields (optional for backwards compatibility).
+    before_state = models.JSONField(default=dict, blank=True)
+    after_state = models.JSONField(default=dict, blank=True)
+    reason = models.CharField(max_length=512, blank=True, default='')
+    result = models.CharField(max_length=32, blank=True, default='')
+    request_id = models.CharField(max_length=64, blank=True, default='', db_index=True)
+    correlation_id = models.CharField(max_length=64, blank=True, default='', db_index=True)
+    session_context = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:
