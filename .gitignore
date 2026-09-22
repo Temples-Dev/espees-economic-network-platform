@@ -20,5 +20,5 @@ node_modules/
 *.swp
 .idea/
 # Espees API test credentials - never commit
-test-account-details.txt
+*.txt
 backend/data/*.sqlite3.bak*
