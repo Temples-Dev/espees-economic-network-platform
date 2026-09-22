@@ -1,5 +1,5 @@
 import { CreditCard, Home as HomeIcon, LogOut, Radio, Search, ShoppingBag, Wallet as WalletIcon } from "lucide-react";
-import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 
 import { AppShell } from "@/components/layout/app-shell";
 import { BrandMark } from "@/components/layout/brand-mark";
@@ -37,15 +37,6 @@ const NAV: NavItem[] = [
   { to: "/app/campaigns", label: "Campaigns", icon: Radio },
 ];
 
-const TITLES: Record<string, string> = {
-  "/app": "Home",
-  "/app/discover": "Discover",
-  "/app/pay": "Pay",
-  "/app/wallet": "Wallet",
-  "/app/orders": "Orders",
-  "/app/campaigns": "Campaigns",
-};
-
 function Brand() {
   return (
     <div className="flex items-center gap-2.5">
@@ -57,7 +48,6 @@ function Brand() {
 
 export function MemberApp({ user, onSignOut }: { user: User; onSignOut: () => void }) {
   const navigate = useNavigate();
-  const title = TITLES[useLocation().pathname] ?? "EENP";
   const onGo = (tab: Tab) => navigate(TAB_PATH[tab]);
 
   return (
@@ -84,7 +74,6 @@ export function MemberApp({ user, onSignOut }: { user: User; onSignOut: () => vo
           </Button>
         </div>
       }
-      topBar={<h1 className="text-lg font-semibold text-ink">{title}</h1>}
     >
       <Routes>
         <Route index element={<Home user={user} onGo={onGo} />} />
