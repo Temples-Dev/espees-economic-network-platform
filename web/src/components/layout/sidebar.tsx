@@ -20,7 +20,7 @@ export function Sidebar({
   footer?: React.ReactNode;
 }) {
   return (
-    <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-surface px-4 py-6 lg:flex">
+    <aside className="hidden w-64 shrink-0 flex-col rounded-[28px] bg-royal px-4 py-6 lg:my-4 lg:ml-4 lg:flex">
       <div className="px-2">{brand}</div>
       <nav className="mt-8 flex flex-1 flex-col gap-1">
         {items.map((item) => (
@@ -30,10 +30,9 @@ export function Sidebar({
             end={item.end}
             className={({ isActive }) =>
               cn(
-                "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-body transition-all",
-                "hover:bg-paper hover:text-ink",
-                isActive &&
-                  "bg-royal text-white shadow-[0_6px_16px_-6px_rgba(24,55,156,0.55)] hover:bg-royal hover:text-white",
+                "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-white/65 transition-colors",
+                "hover:bg-white/10 hover:text-white",
+                isActive && "bg-gold text-deep hover:bg-gold hover:text-deep",
               )
             }
           >
@@ -42,7 +41,7 @@ export function Sidebar({
           </NavLink>
         ))}
       </nav>
-      {footer && <div className="mt-4 border-t border-border pt-4">{footer}</div>}
+      {footer && <div className="mt-4 border-t border-white/10 pt-4">{footer}</div>}
     </aside>
   );
 }

@@ -22,7 +22,7 @@ export function AppShell({
       <Sidebar brand={brand} items={items} footer={sidebarFooter} />
       <div className="flex min-w-0 flex-1 flex-col">
         {topBar && (
-          <header className="flex h-16 shrink-0 items-center justify-between border-b border-border bg-surface px-4 lg:px-8">
+          <header className="flex h-16 shrink-0 items-center justify-between bg-paper px-4 lg:px-8">
             {topBar}
           </header>
         )}

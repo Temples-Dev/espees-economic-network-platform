@@ -49,8 +49,8 @@ const TITLES: Record<string, string> = {
 function Brand() {
   return (
     <div className="flex items-center gap-2.5">
-      <BrandMark />
-      <p className="text-sm font-semibold text-ink">EENP</p>
+      <BrandMark className="ring-1 ring-white/15" />
+      <p className="text-sm font-semibold text-white">EENP</p>
     </div>
   );
 }
@@ -67,13 +67,19 @@ export function MemberApp({ user, onSignOut }: { user: User; onSignOut: () => vo
       sidebarFooter={
         <div className="flex items-center gap-3 px-2">
           <Avatar className="h-9 w-9">
-            <AvatarFallback>{initials(user.full_name || user.email)}</AvatarFallback>
+            <AvatarFallback className="bg-gold text-deep">{initials(user.full_name || user.email)}</AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-ink">{user.full_name || user.email}</p>
-            <p className="truncate text-xs text-body">{user.email}</p>
+            <p className="truncate text-sm font-medium text-white">{user.full_name || user.email}</p>
+            <p className="truncate text-xs text-white/55">{user.email}</p>
           </div>
-          <Button variant="ghost" size="icon" aria-label="Sign out" onClick={onSignOut}>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Sign out"
+            className="text-white/70 hover:bg-white/10 hover:text-white"
+            onClick={onSignOut}
+          >
             <LogOut className="h-4 w-4" />
           </Button>
         </div>
