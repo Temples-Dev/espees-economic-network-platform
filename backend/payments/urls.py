@@ -9,6 +9,7 @@ urlpatterns = [
     path('wallet/capabilities/', views.WalletCapabilitiesView.as_view(), name='wallet_capabilities'),
     path('wallet/link/', views.WalletLinkView.as_view(), name='wallet_link'),
     path('wallet/verify/', views.WalletVerifyView.as_view(), name='wallet_verify'),
+    path('wallets/', views.WalletQueueView.as_view(), name='wallet_queue'),
     path('payments/', views.PaymentListView.as_view(), name='payment_list'),
     path('payments/merchant/', views.MerchantPaymentCreateView.as_view(), name='merchant_payment'),
     path('payments/<uuid:id>/', views.PaymentDetailView.as_view(), name='payment_detail'),

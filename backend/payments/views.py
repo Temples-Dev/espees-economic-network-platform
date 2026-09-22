@@ -12,7 +12,11 @@ from core.audit import record as audit_record
 
 from . import services
 from .models import Payment
-from .serializers import MerchantPaymentWriteSerializer, PaymentSerializer
+from .serializers import (
+    MerchantPaymentWriteSerializer,
+    PaymentSerializer,
+    WalletQueueSerializer,
+)
 
 
 class WalletView(APIView):
@@ -144,6 +148,35 @@ class WalletVerifyView(APIView):
                      after_state={'status': wallet.status, 'address': wallet.espees_wallet_address},
                      reason='staff verification of claimed address', result=wallet.status)
         return Response(WalletSerializer(wallet).data)
+
+
+class WalletQueueView(APIView):
+    """Staff queue of wallet associations awaiting attention (default: claimed)."""
+
+    permission_classes = [permissions.IsAdminUser]
+    serializer_class = WalletQueueSerializer
+
+    @extend_schema(
+        tags=['wallet'], summary='Wallet verification queue (staff)',
+        responses={200: WalletQueueSerializer(many=True)},
+    )
+    def get(self, request):
+        from accounts.models import Wallet as WalletModel
+
+        wanted = request.query_params.get('status') or WalletModel.Status.REQUIRES_ACTION
+        valid = {choice for choice, _label in WalletModel.Status.choices}
+        if wanted not in valid and wanted != 'attention':
+            return Response(
+                {'detail': f'Unknown status. Valid: {sorted(valid)} or attention.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        qs = WalletModel.objects.select_related('user').exclude(espees_wallet_address='')
+        if wanted == 'attention':
+            qs = qs.exclude(status=WalletModel.Status.ASSOCIATED)
+        else:
+            qs = qs.filter(status=wanted)
+        rows = qs.order_by('updated_at')[:200]
+        return Response(WalletQueueSerializer(rows, many=True).data)
 
 
 class MerchantPaymentCreateView(APIView):

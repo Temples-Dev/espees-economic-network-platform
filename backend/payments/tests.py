@@ -272,6 +272,49 @@ class WalletLinkTests(APITestCase):
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
 
 
+class WalletQueueTests(APITestCase):
+    ADDRESS = '0xd15c259d11dfe0bb39383fd3270d74f6d124a13b'
+
+    def setUp(self):
+        self.user = User.objects.create_user(email='queued@example.com', password='strong-password-1')
+        self.staff = User.objects.create_user(
+            email='qstaff@example.com', password='strong-password-1', is_staff=True
+        )
+        Wallet.objects.create(user=self.user, espees_wallet_address=self.ADDRESS,
+                              status=Wallet.Status.REQUIRES_ACTION)
+
+    def test_queue_requires_staff(self):
+        self.client.force_authenticate(user=self.user)
+        resp = self.client.get(reverse('payments:wallet_queue'))
+        self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_staff_sees_claimed_queue(self):
+        self.client.force_authenticate(user=self.staff)
+        resp = self.client.get(reverse('payments:wallet_queue'))
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(resp.data), 1)
+        self.assertEqual(resp.data[0]['user_email'], 'queued@example.com')
+        self.assertEqual(resp.data[0]['espees_wallet_address'], self.ADDRESS)
+
+    def test_attention_filter_excludes_associated(self):
+        wallet = Wallet.objects.get(user=self.user)
+        wallet.status = Wallet.Status.ASSOCIATED
+        wallet.save(update_fields=['status'])
+        self.client.force_authenticate(user=self.staff)
+        self.assertEqual(
+            self.client.get(reverse('payments:wallet_queue')).data, []
+        )
+        resp = self.client.get(reverse('payments:wallet_queue') + '?status=attention')
+        self.assertEqual(resp.data, [])
+        resp = self.client.get(reverse('payments:wallet_queue') + '?status=associated')
+        self.assertEqual(len(resp.data), 1)
+
+    def test_unknown_status_rejected(self):
+        self.client.force_authenticate(user=self.staff)
+        resp = self.client.get(reverse('payments:wallet_queue') + '?status=bogus')
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+
 class PaymentReturnTests(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(email='return@example.com', password='strong-password-1')

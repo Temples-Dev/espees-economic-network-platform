@@ -39,7 +39,6 @@ class PaymentSerializer(serializers.ModelSerializer):
             return payment_url(obj.espees_payment_ref)
         return ''
 
-
 class ReconciliationRecordSerializer(serializers.ModelSerializer):
     class Meta:
         model = ReconciliationRecord
@@ -50,3 +49,17 @@ class ReconciliationRecordSerializer(serializers.ModelSerializer):
             'details', 'created_at', 'updated_at',
         ]
         read_only_fields = fields
+
+
+class WalletQueueSerializer(serializers.Serializer):
+    """Staff queue row: wallet association plus the claiming member."""
+
+    id = serializers.UUIDField(read_only=True)
+    user_id = serializers.UUIDField(source='user.id', read_only=True)
+    user_email = serializers.EmailField(source='user.email', read_only=True)
+    espees_wallet_address = serializers.CharField(read_only=True)
+    external_account_reference = serializers.CharField(read_only=True)
+    status = serializers.CharField(read_only=True)
+    status_detail = serializers.CharField(read_only=True)
+    provisioned_at = serializers.DateTimeField(read_only=True, allow_null=True)
+    updated_at = serializers.DateTimeField(read_only=True)
