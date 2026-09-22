@@ -24,10 +24,12 @@ class AuthFlowTests(APITestCase):
         self.assertEqual(User.objects.count(), 1)
         user = User.objects.get(email='member@example.com')
         self.assertEqual(user.full_name, 'Ada Lomo')
-        self.assertTrue(user.wallet.espees_wallet_id.startswith('stub-espees-wallet-'))
-        self.assertEqual(user.wallet.status, Wallet.Status.ACTIVE)
+        # Doc16 §7/§33: no public User API exists, so provisioning stays
+        # PENDING_EXTERNAL — never a faked ACTIVE wallet.
+        self.assertEqual(user.wallet.espees_wallet_id, '')
+        self.assertEqual(user.wallet.status, Wallet.Status.PENDING_EXTERNAL)
         self.assertIn('wallet', resp.data)
-        self.assertEqual(resp.data['wallet']['status'], Wallet.Status.ACTIVE)
+        self.assertEqual(resp.data['wallet']['status'], Wallet.Status.PENDING_EXTERNAL)
 
     def test_registration_requires_unique_email(self):
         url = reverse('accounts:register')

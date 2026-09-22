@@ -34,9 +34,10 @@ class ProfileAdmin(admin.ModelAdmin):
 
 @admin.register(Wallet)
 class WalletAdmin(admin.ModelAdmin):
-    list_display = ['user', 'espees_wallet_id', 'status', 'created_at']
+    list_display = ['user', 'espees_wallet_id', 'status', 'provisioned_at', 'created_at']
     list_filter = ['status']
-    search_fields = ['user__email', 'espees_wallet_id']
+    search_fields = ['user__email', 'espees_wallet_id', 'external_account_reference']
+    readonly_fields = ['id', 'created_at', 'updated_at']
 
 
 @admin.register(LoginActivity)

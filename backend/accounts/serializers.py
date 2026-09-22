@@ -20,7 +20,18 @@ class RegisterSerializer(serializers.ModelSerializer):
 class WalletSerializer(serializers.ModelSerializer):
     class Meta:
         model = Wallet
-        fields = ['id', 'espees_wallet_id', 'status', 'created_at', 'updated_at']
+        fields = [
+            'id',
+            'espees_wallet_id',
+            'espees_wallet_address',
+            'external_account_reference',
+            'status',
+            'status_detail',
+            'metadata',
+            'provisioned_at',
+            'created_at',
+            'updated_at',
+        ]
         read_only_fields = fields
 
 

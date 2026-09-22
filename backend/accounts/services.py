@@ -13,16 +13,22 @@ logger = logging.getLogger(__name__)
 
 
 def provision_espees_wallet(user_id):
-    """Provision an Espees wallet for a member via the Espees API.
+    """Record that wallet provisioning is pending official Espees support.
 
-    Currently a stub: returns a stubbed wallet identity without calling the
-    Espees network. Wire the real Espees API integration here later; the rest of
-    the platform does not need to change.
+    Doc16 §7/§33: programmatic User wallet provisioning is DEPENDENT /
+    UNCONFIRMED — there is no public User API to call. Per the interim
+    rules we must NOT invent an Espees wallet identity or mark the wallet
+    active. This records PENDING_EXTERNAL so the UI can render a
+    capability-driven "pending enablement" state instead of a fake
+    ready wallet.
     """
-    # TODO(espees-api): replace with a real call to the Espees API.
+    # TODO(espees-api): replace with a real call once Espees confirms a
+    # User provisioning / wallet-linking mechanism (Doc16 §32 Q3-Q5).
     wallet = Wallet.objects.get(user_id=user_id)
-    wallet.espees_wallet_id = f'stub-espees-wallet-{user_id.hex[:12]}'
-    wallet.status = Wallet.Status.ACTIVE
-    wallet.save(update_fields=['espees_wallet_id', 'status', 'updated_at'])
-    logger.info('Provisioned stub Espees wallet %s for user %s', wallet.espees_wallet_id, user_id)
+    wallet.status = Wallet.Status.PENDING_EXTERNAL
+    wallet.status_detail = (
+        'Awaiting official Espees user provisioning / wallet-linking mechanism.'
+    )
+    wallet.save(update_fields=['status', 'status_detail', 'updated_at'])
+    logger.info('Wallet for user %s is pending external Espees provisioning', user_id)
     return wallet

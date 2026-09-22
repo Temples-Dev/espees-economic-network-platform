@@ -75,22 +75,37 @@ class Profile(models.Model):
 
 
 class Wallet(models.Model):
-    """Reference to the member's Espees wallet.
+    """Association between a platform account and its Espees wallet.
 
-    The Espees network is the authoritative ledger for balances — this record only
-    tracks the identity and lifecycle of the wallet within the platform. Actual
-    provisioning happens through the Espees API via the services layer.
+    Doc16 §8: the platform stores the *association* (EENP wallet id,
+    Espees wallet address, provisioning status, external account
+    reference, integration metadata). The Espees network remains the
+    authoritative ledger for balances and settlement — this record must
+    never be treated as an authoritative balance.
     """
 
     class Status(models.TextChoices):
-        PENDING = 'pending', 'Pending provisioning'
-        ACTIVE = 'active', 'Active'
+        NOT_STARTED = 'not_started', 'Not started'
+        REQUESTED = 'requested', 'Requested'
+        PROVISIONING = 'provisioning', 'Provisioning'
+        ASSOCIATED = 'associated', 'Associated'
+        PENDING_EXTERNAL = 'pending_external', 'Pending external (awaiting Espees)'
+        REQUIRES_ACTION = 'requires_action', 'Requires action'
         FAILED = 'failed', 'Provisioning failed'
+        # Legacy values retained for existing rows (pre-Doc16). New code
+        # must use the canonical states above.
+        PENDING = 'pending', 'Pending provisioning (legacy)'
+        ACTIVE = 'active', 'Active (legacy)'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='wallet')
     espees_wallet_id = models.CharField(max_length=128, blank=True, default='')
-    status = models.CharField(max_length=16, choices=Status.choices, default=Status.PENDING)
+    espees_wallet_address = models.CharField(max_length=128, blank=True, default='')
+    external_account_reference = models.CharField(max_length=128, blank=True, default='')
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.NOT_STARTED)
+    status_detail = models.CharField(max_length=512, blank=True, default='')
+    metadata = models.JSONField(default=dict, blank=True)
+    provisioned_at = models.DateTimeField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
