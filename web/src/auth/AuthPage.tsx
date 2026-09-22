@@ -9,31 +9,9 @@ import { Label } from "@/components/ui/label";
 
 import { api, errorMessage } from "../lib/api";
 import type { User } from "../lib/auth";
+import { SocialAuthRow } from "./SocialAuthRow";
 
 type View = "login" | "register" | "code" | "reset";
-
-const COPY: Record<View, { eyebrow: string; title: string; description: string }> = {
-  login: {
-    eyebrow: "Welcome back",
-    title: "Sign in to run the network",
-    description: "Manage businesses, orders, campaigns and wallet verification from one console.",
-  },
-  register: {
-    eyebrow: "Join us",
-    title: "Create your EENP account",
-    description: "Set up staff access to the EENP platform.",
-  },
-  code: {
-    eyebrow: "Verify it's you",
-    title: "Enter your authenticator code",
-    description: "Two-factor authentication is enabled on this account.",
-  },
-  reset: {
-    eyebrow: "Reset password",
-    title: "Let's get you back in",
-    description: "We'll email a reset link to your account address.",
-  },
-};
 
 function ErrorBanner({ message }: { message: string | null }) {
   if (!message) return null;
@@ -112,20 +90,18 @@ export function AuthPage({ onDone }: { onDone: (u: User) => void }) {
     }
   }
 
-  const copy = COPY[view];
-
   return (
-    <AuthSplit eyebrow={copy.eyebrow} title={copy.title} description={copy.description}>
+    <AuthSplit>
       {view === "reset" ? (
         <div>
-          <h2 className="text-xl font-semibold text-ink">Reset password</h2>
+          <h2 className="text-2xl font-semibold text-ink">Reset your password</h2>
           <p className="mt-1 text-sm text-body">Enter your account email and we'll send a reset link.</p>
           {resetSent ? (
             <p className="mt-5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
               If the account exists, a reset email has been sent.
             </p>
           ) : (
-            <form onSubmit={(e) => void submitReset(e)} className="mt-5 space-y-4">
+            <form onSubmit={(e) => void submitReset(e)} className="mt-6 space-y-4">
               <div className="space-y-1.5">
                 <Label htmlFor="reset-email">Email</Label>
                 <Input
@@ -160,9 +136,9 @@ export function AuthPage({ onDone }: { onDone: (u: User) => void }) {
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-surface-selected text-royal">
             <ShieldCheck className="h-5 w-5" />
           </div>
-          <h2 className="mt-4 text-xl font-semibold text-ink">Two-factor code</h2>
-          <p className="mt-1 text-sm text-body">Enter the 6-digit code from your authenticator app.</p>
-          <form onSubmit={(e) => void submitCode(e)} className="mt-5 space-y-4">
+          <h2 className="mt-4 text-2xl font-semibold text-ink">Check your authenticator</h2>
+          <p className="mt-1 text-sm text-body">Enter the 6-digit code to finish signing in.</p>
+          <form onSubmit={(e) => void submitCode(e)} className="mt-6 space-y-4">
             <Input
               required
               inputMode="numeric"
@@ -191,23 +167,14 @@ export function AuthPage({ onDone }: { onDone: (u: User) => void }) {
         </div>
       ) : (
         <div>
-          <div className="flex items-center gap-1 rounded-xl bg-paper p-1 text-sm">
-            {(["login", "register"] as const).map((m) => (
-              <button
-                key={m}
-                onClick={() => {
-                  setView(m);
-                  setError(null);
-                }}
-                className={
-                  "flex-1 rounded-lg py-2 font-medium transition-colors " +
-                  (view === m ? "bg-surface text-royal shadow-sm" : "text-body hover:text-ink")
-                }
-              >
-                {m === "login" ? "Sign in" : "Create account"}
-              </button>
-            ))}
-          </div>
+          <h2 className="text-2xl font-semibold text-ink">
+            {view === "login" ? "Welcome back" : "Create your account"}
+          </h2>
+          <p className="mt-1 text-sm text-body">
+            {view === "login"
+              ? "Sign in to your Espees Economic Network account."
+              : "Set up your EENP account to get started."}
+          </p>
           <form onSubmit={(e) => void submit(e)} className="mt-6 space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="auth-email">Email</Label>
@@ -250,6 +217,24 @@ export function AuthPage({ onDone }: { onDone: (u: User) => void }) {
               {busy ? "Working…" : view === "login" ? "Sign in" : "Create account"}
             </Button>
           </form>
+          <SocialAuthRow />
+          <button
+            onClick={() => {
+              setView(view === "login" ? "register" : "login");
+              setError(null);
+            }}
+            className="mt-6 w-full text-center text-sm text-body"
+          >
+            {view === "login" ? (
+              <>
+                New to EENP? <span className="font-semibold text-royal">Create an account</span>
+              </>
+            ) : (
+              <>
+                Already have an account? <span className="font-semibold text-royal">Sign in</span>
+              </>
+            )}
+          </button>
         </div>
       )}
     </AuthSplit>
