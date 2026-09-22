@@ -20,8 +20,19 @@ type SessionRow = {
   created_at: string;
 };
 type Notice = { id: string; title: string; message: string; is_read: boolean };
+type WalletRow = {
+  id: string;
+  user_id: string;
+  user_email: string;
+  espees_wallet_address: string;
+  external_account_reference: string;
+  status: string;
+  status_detail: string;
+  provisioned_at: string | null;
+  updated_at: string;
+};
 
-type Section = "overview" | "orders" | "categories" | "sessions" | "account" | "member";
+type Section = "overview" | "orders" | "categories" | "sessions" | "account" | "member" | "wallets";
 
 function slugify(name: string): string {
   return name
@@ -280,13 +291,14 @@ function Overview() {
   useEffect(() => {
     (async () => {
       try {
-        const [biz, orders, camps, convos, notes, sess] = await Promise.all([
+        const [biz, orders, camps, convos, notes, sess, walletQueue] = await Promise.all([
           api.getList("/api/v1/businesses/"),
           api.getList("/api/v1/orders/"),
           api.getList("/api/v1/campaigns/"),
           api.getList("/api/v1/conversations/"),
           api.getList<Notice>("/api/v1/notifications/"),
           api.get<{ sessions: SessionRow[] }>("/api/v1/auth/sessions/"),
+          api.getList<WalletRow>("/api/v1/wallets/").catch(() => [] as WalletRow[]),
         ]);
         setCounts({
           Businesses: biz.length,
@@ -295,6 +307,7 @@ function Overview() {
           Conversations: convos.length,
           "Unread notifications": notes.filter((n) => !n.is_read).length,
           "Recent sessions": sess.sessions.length,
+          "Wallets awaiting verification": walletQueue.length,
         });
       } catch (err) {
         setError(errorMessage(err, "Could not load overview."));
@@ -313,16 +326,39 @@ function Overview() {
   );
 }
 
-function Orders() {
+export function Orders() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
 
-  useEffect(() => {
-    api
+  function refresh() {
+    return api
       .getList<Order>("/api/v1/orders/")
       .then(setOrders)
       .catch((err: unknown) => setError(errorMessage(err, "Could not load orders.")));
+  }
+
+  useEffect(() => {
+    void refresh();
   }, []);
+
+  const NEXT: Record<string, string[]> = {
+    pending: ["confirmed", "cancelled"],
+    confirmed: ["fulfilled", "cancelled"],
+  };
+
+  async function transition(id: string, next: string) {
+    setError(null);
+    setBusy(id + next);
+    try {
+      await api.patch(`/api/v1/orders/${id}/status/`, { status: next });
+      await refresh();
+    } catch (err) {
+      setError(errorMessage(err, `Could not move order to ${next}.`));
+    } finally {
+      setBusy(null);
+    }
+  }
 
   if (error) return <p className="text-sm text-red-400">{error}</p>;
   if (orders.length === 0) return <p className="text-sm text-zinc-500">No orders yet.</p>;
@@ -336,8 +372,104 @@ function Orders() {
           <p className="text-sm text-zinc-400">
             {o.business_name} · {o.customer_email} · {new Date(o.created_at).toLocaleString()}
           </p>
+          {(NEXT[o.status] ?? []).length > 0 && (
+            <div className="mt-2 flex gap-2">
+              {NEXT[o.status].map((next) => (
+                <button
+                  key={next}
+                  disabled={busy !== null}
+                  onClick={() => void transition(o.id, next)}
+                  className="rounded-lg border border-zinc-700 px-3 py-1 text-xs text-zinc-200 hover:border-zinc-500 disabled:opacity-50"
+                >
+                  {busy === o.id + next ? "Working…" : `Mark ${next}`}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       ))}
+    </div>
+  );
+}
+
+export function Wallets() {
+  const [rows, setRows] = useState<WalletRow[]>([]);
+  const [filter, setFilter] = useState("requires_action");
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+
+  function refresh(nextFilter: string) {
+    return api
+      .getList<WalletRow>(`/api/v1/wallets/?status=${nextFilter}`)
+      .then(setRows)
+      .catch((err: unknown) => setError(errorMessage(err, "Could not load wallet queue.")));
+  }
+
+  useEffect(() => {
+    void refresh(filter);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter]);
+
+  async function verify(row: WalletRow) {
+    setError(null);
+    setNotice(null);
+    setBusy(row.user_id);
+    try {
+      await api.post("/api/v1/wallet/verify/", { user_id: row.user_id });
+      setNotice(`Verified wallet for ${row.user_email}.`);
+      await refresh(filter);
+    } catch (err) {
+      setError(errorMessage(err, "Verification failed."));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2 text-sm">
+        <span className="text-zinc-400">Show:</span>
+        {(["requires_action", "attention", "associated", "pending_external"] as const).map((s) => (
+          <button
+            key={s}
+            onClick={() => setFilter(s)}
+            className={
+              filter === s
+                ? "rounded-lg bg-royal px-3 py-1.5 text-white"
+                : "rounded-lg border border-zinc-700 px-3 py-1.5 text-zinc-300 hover:border-zinc-500"
+            }
+          >
+            {s.replace(/_/g, " ")}
+          </button>
+        ))}
+      </div>
+      {error && <p className="text-sm text-red-400">{error}</p>}
+      {notice && <p className="text-sm text-emerald-400">{notice}</p>}
+      {rows.length === 0 ? (
+        <p className="text-sm text-zinc-500">Queue empty.</p>
+      ) : (
+        <div className="space-y-2">
+          {rows.map((r) => (
+            <div key={r.id} className="rounded-xl border border-zinc-800 bg-zinc-900 p-4">
+              <p className="font-medium">{r.user_email}</p>
+              <p className="break-all font-mono text-xs text-zinc-400">{r.espees_wallet_address}</p>
+              <p className="mt-1 text-xs text-zinc-500">
+                {r.status.replace(/_/g, " ")} · claimed {new Date(r.updated_at).toLocaleString()}
+              </p>
+              {r.status !== "associated" && (
+                <button
+                  disabled={busy !== null}
+                  onClick={() => void verify(r)}
+                  className="mt-2 rounded-lg bg-royal px-3 py-1.5 text-xs font-medium text-white hover:bg-deep disabled:opacity-50"
+                >
+                  {busy === r.user_id ? "Verifying…" : "Verify address"}
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -596,6 +728,7 @@ function Dashboard({ user, onSignedOut }: { user: User; onSignedOut: () => void 
   const tabs: Array<{ id: Section; label: string }> = [
     { id: "overview", label: "Overview" },
     { id: "orders", label: "Orders" },
+    { id: "wallets", label: "Wallets" },
     { id: "categories", label: "Categories" },
     { id: "sessions", label: "Sessions" },
     { id: "account", label: "Account" },
@@ -634,6 +767,7 @@ function Dashboard({ user, onSignedOut }: { user: User; onSignedOut: () => void 
       <div className="mt-6">
         {section === "overview" && <Overview />}
         {section === "orders" && <Orders />}
+        {section === "wallets" && <Wallets />}
         {section === "categories" && <Categories />}
         {section === "sessions" && <Sessions />}
         {section === "account" && <Account user={user} onSignedOut={onSignedOut} />}
