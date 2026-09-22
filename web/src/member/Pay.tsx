@@ -1,4 +1,7 @@
+import { CreditCard } from "lucide-react";
 import { useState } from "react";
+
+import { IconChip } from "@/components/ui/icon-chip";
 
 import { errorMessage } from "../lib/api";
 import type { Payment } from "../lib/money";
@@ -45,14 +48,24 @@ export function Pay() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
+      <div>
+        <h2 className="text-2xl font-semibold text-ink">Pay</h2>
+        <p className="mt-1 text-sm text-body">Create a merchant payment and settle it through Espees.</p>
+      </div>
+
       <Card>
-        <h3 className="font-medium">New merchant payment</h3>
-        <p className="mt-1 text-xs text-body/80">
-          Creates a payment intent, then continue in the Espees portal. Only a server-side
-          confirmation completes the payment.
-        </p>
-        <form onSubmit={submit} className="mt-3 space-y-3">
+        <div className="flex items-start gap-3">
+          <IconChip icon={CreditCard} tone="royal" />
+          <div>
+            <h3 className="font-medium text-ink">New merchant payment</h3>
+            <p className="mt-1 text-xs text-body/80">
+              Creates a payment intent, then continue in the Espees portal. Only a server-side
+              confirmation completes the payment.
+            </p>
+          </div>
+        </div>
+        <form onSubmit={submit} className="mt-4 space-y-3">
           <Field label="What is this for?">
             <input
               value={narration}
@@ -82,7 +95,7 @@ export function Pay() {
       {payment && (
         <Card>
           <div className="flex items-center justify-between gap-2">
-            <p className="font-medium">
+            <p className="font-medium text-ink">
               {payment.amount_espees} ESP · {payment.narration}
             </p>
             <StatusPill value={payment.status} />

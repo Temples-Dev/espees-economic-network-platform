@@ -6,6 +6,7 @@ import { BrandMark } from "@/components/layout/brand-mark";
 import type { NavItem } from "@/components/layout/sidebar";
 import { Avatar, AvatarFallback, initials } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/cn";
 
 import { signOut } from "../lib/api";
 import type { User } from "../lib/auth";
@@ -34,14 +35,16 @@ const TITLES: Record<string, string> = {
   "/staff/account": "Account",
 };
 
-function Brand() {
+function Brand({ collapsed }: { collapsed: boolean }) {
   return (
     <div className="flex items-center gap-2.5">
       <BrandMark className="ring-1 ring-white/15" />
-      <div className="leading-tight">
-        <p className="text-sm font-semibold text-white">EENP Admin</p>
-        <p className="text-xs text-white/60">Staff console</p>
-      </div>
+      {!collapsed && (
+        <div className="leading-tight">
+          <p className="text-sm font-semibold text-white">EENP Admin</p>
+          <p className="text-xs text-white/60">Staff console</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -52,28 +55,32 @@ export function StaffApp({ user, onSignedOut }: { user: User; onSignedOut: () =>
 
   return (
     <AppShell
-      brand={<Brand />}
+      brand={(collapsed) => <Brand collapsed={collapsed} />}
       items={NAV}
-      sidebarFooter={
-        <div className="flex items-center gap-3 px-2">
-          <Avatar className="h-9 w-9">
+      sidebarFooter={(collapsed) => (
+        <div className={cn("flex items-center gap-3", collapsed ? "justify-center px-0" : "px-2")}>
+          <Avatar className="h-9 w-9 shrink-0">
             <AvatarFallback className="bg-gold text-deep">{initials(user.full_name || user.email)}</AvatarFallback>
           </Avatar>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-white">{user.full_name || user.email}</p>
-            <p className="truncate text-xs text-white/55">{user.email}</p>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Sign out"
-            className="text-white/70 hover:bg-white/10 hover:text-white"
-            onClick={() => void signOut().then(onSignedOut)}
-          >
-            <LogOut className="h-4 w-4" />
-          </Button>
+          {!collapsed && (
+            <>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-white">{user.full_name || user.email}</p>
+                <p className="truncate text-xs text-white/55">{user.email}</p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Sign out"
+                className="text-white/70 hover:bg-white/10 hover:text-white"
+                onClick={() => void signOut().then(onSignedOut)}
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </>
+          )}
         </div>
-      }
+      )}
       topBar={
         <>
           <h1 className="text-lg font-semibold text-ink">{title}</h1>

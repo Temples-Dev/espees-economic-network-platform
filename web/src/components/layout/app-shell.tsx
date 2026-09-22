@@ -11,9 +11,9 @@ export function AppShell({
   topBar,
   children,
 }: {
-  brand: ReactNode;
+  brand: (collapsed: boolean) => ReactNode;
   items: NavItem[];
-  sidebarFooter?: ReactNode;
+  sidebarFooter?: (collapsed: boolean) => ReactNode;
   topBar?: ReactNode;
   children: ReactNode;
 }) {

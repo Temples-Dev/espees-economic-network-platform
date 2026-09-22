@@ -1,4 +1,7 @@
+import { Radio, X } from "lucide-react";
 import { useEffect, useState } from "react";
+
+import { IconChip, ICON_CHIP_ROTATION } from "@/components/ui/icon-chip";
 
 import { errorMessage } from "../lib/api";
 import type { Campaign } from "../lib/catalog";
@@ -58,26 +61,36 @@ export function Campaigns() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
+      <div>
+        <h2 className="text-2xl font-semibold text-ink">Campaigns</h2>
+        <p className="mt-1 text-sm text-body">Fundraisers running across the network.</p>
+      </div>
+
       <ErrorText message={error} />
       {campaigns.length === 0 ? (
-        <Muted>No campaigns yet.</Muted>
+        <Card>
+          <Muted>No campaigns yet.</Muted>
+        </Card>
       ) : (
-        <div className="space-y-2">
-          {campaigns.map((c) => (
-            <button key={c.id} onClick={() => void open(c.id)} className="block w-full text-left">
-              <Card>
-                <div className="flex items-center justify-between gap-2">
-                  <p className="font-medium">{c.title}</p>
-                  <StatusPill value={c.status} />
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {campaigns.map((c, i) => (
+            <button key={c.id} onClick={() => void open(c.id)} className="block text-left">
+              <Card className="flex h-full items-start gap-3">
+                <IconChip icon={Radio} tone={ICON_CHIP_ROTATION[i % ICON_CHIP_ROTATION.length]} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-medium text-ink">{c.title}</p>
+                    <StatusPill value={c.status} />
+                  </div>
+                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-border">
+                    <div className="h-full rounded-full bg-gold" style={{ width: `${progress(c)}%` }} />
+                  </div>
+                  <p className="mt-1 text-xs text-body/80">
+                    {c.raised_espees ?? "0"} / {c.goal_espees} ESP · {progress(c)}%
+                    {c.contribution_count != null ? ` · ${c.contribution_count} contributions` : ""}
+                  </p>
                 </div>
-                <div className="mt-2 h-1.5 overflow-hidden rounded bg-border">
-                  <div className="h-full bg-gold" style={{ width: `${progress(c)}%` }} />
-                </div>
-                <p className="mt-1 text-xs text-body/80">
-                  {c.raised_espees ?? "0"} / {c.goal_espees} ESP · {progress(c)}%
-                  {c.contribution_count != null ? ` · ${c.contribution_count} contributions` : ""}
-                </p>
               </Card>
             </button>
           ))}
@@ -87,15 +100,22 @@ export function Campaigns() {
       {selected && (
         <Card>
           <div className="flex items-start justify-between gap-2">
-            <div>
-              <h3 className="font-medium">{selected.title}</h3>
-              <p className="text-sm text-body">{selected.description || "No description."}</p>
+            <div className="flex items-start gap-3">
+              <IconChip icon={Radio} tone="royal" />
+              <div>
+                <h3 className="font-medium text-ink">{selected.title}</h3>
+                <p className="text-sm text-body">{selected.description || "No description."}</p>
+              </div>
             </div>
-            <button onClick={() => setSelected(null)} className="text-sm text-body hover:text-ink">
-              Close
+            <button
+              onClick={() => setSelected(null)}
+              aria-label="Close"
+              className="rounded-lg p-1.5 text-body hover:bg-paper hover:text-ink"
+            >
+              <X className="h-4 w-4" />
             </button>
           </div>
-          <p className="mt-2 text-sm text-ink/80">
+          <p className="mt-3 text-sm text-ink/80">
             {selected.raised_espees ?? "0"} / {selected.goal_espees} ESP raised
           </p>
           {selected.status === "active" ? (
