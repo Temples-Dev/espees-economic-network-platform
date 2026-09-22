@@ -57,7 +57,7 @@ export function MemberApp({ user, onSignOut }: { user: User; onSignOut: () => vo
         {tab === "home" && <Home onGo={setTab} />}
         {tab === "wallet" && <Wallet />}
         {tab === "pay" && <Pay />}
-        {tab === "discover" && <Discover />}
+        {tab === "discover" && <Discover onGo={setTab} />}
         {tab === "orders" && <Orders />}
         {tab === "campaigns" && <Campaigns />}
       </div>

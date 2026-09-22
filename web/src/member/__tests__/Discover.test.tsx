@@ -4,14 +4,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Discover } from "../Discover";
 
-const { mockListBusinesses, mockListOfferings } = vi.hoisted(() => ({
+const { mockListBusinesses, mockListOfferings, mockCreateOrder } = vi.hoisted(() => ({
   mockListBusinesses: vi.fn(),
   mockListOfferings: vi.fn(),
+  mockCreateOrder: vi.fn(),
 }));
 
 vi.mock("../../lib/catalog", () => ({
   listBusinesses: mockListBusinesses,
   listOfferings: mockListOfferings,
+  createOrder: mockCreateOrder,
 }));
 
 beforeEach(() => {
@@ -38,20 +40,20 @@ describe("Discover", () => {
     mockListOfferings.mockResolvedValue([
       { id: "o1", name: "Jollof", kind: "product", price: "15.00" },
     ]);
-    render(<Discover />);
+    render(<Discover onGo={() => {}} />);
 
     expect(await screen.findByText("Ama's Kitchen")).toBeInTheDocument();
     expect(screen.getByText("verified")).toBeInTheDocument();
 
     await user.click(screen.getByText("Ama's Kitchen"));
     expect(await screen.findByText("Jollof")).toBeInTheDocument();
-    expect(screen.getByText("15.00 ESP")).toBeInTheDocument();
+    expect(screen.getByText("product · 15.00 ESP")).toBeInTheDocument();
     expect(mockListOfferings).toHaveBeenCalledWith("b1");
   });
 
   it("searches with the entered query", async () => {
     const user = userEvent.setup();
-    render(<Discover />);
+    render(<Discover onGo={() => {}} />);
     await screen.findByText("Ama's Kitchen");
 
     await user.type(screen.getByPlaceholderText("Search businesses…"), "kitchen");
@@ -61,7 +63,51 @@ describe("Discover", () => {
 
   it("handles an empty directory honestly", async () => {
     mockListBusinesses.mockResolvedValue([]);
-    render(<Discover />);
+    render(<Discover onGo={() => {}} />);
     expect(await screen.findByText("No businesses found.")).toBeInTheDocument();
+  });
+
+  it("builds a basket and places an order", async () => {
+    const user = userEvent.setup();
+    const onGo = vi.fn();
+    mockListOfferings.mockResolvedValue([
+      { id: "o1", name: "Jollof", kind: "product", price: "15.00" },
+      { id: "o2", name: "Banku", kind: "product", price: "10.00" },
+    ]);
+    mockCreateOrder.mockResolvedValue({ id: "ord1", total: "40.00" });
+    render(<Discover onGo={onGo} />);
+    await user.click(await screen.findByText("Ama's Kitchen"));
+
+    await user.click(screen.getByRole("button", { name: "Add one Jollof" }));
+    await user.click(screen.getByRole("button", { name: "Add one Jollof" }));
+    await user.click(screen.getByRole("button", { name: "Add one Banku" }));
+    expect(screen.getByText(/Basket: 3 items · ≈ 40.00 ESP/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Place order" }));
+    expect(mockCreateOrder).toHaveBeenCalledWith("b1", [
+      { offering: "o1", quantity: 2 },
+      { offering: "o2", quantity: 1 },
+    ]);
+    expect(await screen.findByText(/Order placed: 40.00 ESP/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "View your orders" }));
+    expect(onGo).toHaveBeenCalledWith("orders");
+  });
+
+  it("reports order failures without clearing the basket", async () => {
+    const user = userEvent.setup();
+    const { ApiError } = await import("../../lib/api");
+    mockListOfferings.mockResolvedValue([
+      { id: "o1", name: "Jollof", kind: "product", price: "15.00" },
+    ]);
+    mockCreateOrder.mockRejectedValue(new ApiError(400, { detail: "Offering unavailable." }));
+    render(<Discover onGo={() => {}} />);
+    await user.click(await screen.findByText("Ama's Kitchen"));
+    await user.click(screen.getByRole("button", { name: "Add one Jollof" }));
+    await user.click(screen.getByRole("button", { name: "Place order" }));
+
+    expect(await screen.findByText("Offering unavailable.")).toBeInTheDocument();
+    expect(screen.getByLabelText("Quantity of Jollof")).toHaveTextContent("1");
+    expect(mockCreateOrder).toHaveBeenCalledTimes(1);
   });
 });

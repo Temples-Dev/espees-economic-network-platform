@@ -73,6 +73,13 @@ export async function listOrders(): Promise<Order[]> {
   return api.getList<Order>("/api/v1/orders/");
 }
 
+export async function createOrder(
+  businessId: string,
+  items: Array<{ offering: string; quantity: number }>,
+): Promise<Order> {
+  return api.post("/api/v1/orders/", { business: businessId, items });
+}
+
 export async function listCampaigns(): Promise<Campaign[]> {
   return api.getList<Campaign>("/api/v1/campaigns/");
 }
