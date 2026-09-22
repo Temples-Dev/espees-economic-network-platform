@@ -3,6 +3,10 @@ import { useEffect, useState } from "react";
 import { api, errorMessage } from "./lib/api";
 import type { User } from "./lib/auth";
 import { MemberApp } from "./member/MemberApp";
+import { PayReturn } from "./member/PayReturn";
+
+const isReturnPath =
+  typeof window !== "undefined" && window.location.pathname.startsWith("/payments/return");
 
 type Category = { id: string; name: string; slug: string };
 type Order = {
@@ -791,6 +795,7 @@ export function App() {
 
   if (loading) return <p className="p-8 text-zinc-400">Loading…</p>;
   if (!user) return <LoginForm onDone={setUser} />;
+  if (isReturnPath) return <PayReturn />;
   if (!user.is_staff) {
     return (
       <main>

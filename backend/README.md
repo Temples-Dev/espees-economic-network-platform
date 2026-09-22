@@ -45,6 +45,10 @@ Authentication uses JWT (simplejwt). Protected endpoints expect `Authorization: 
 | `GET` | `/api/v1/payments/{id}/` | Payment detail incl. `payment_url` + server-side status (auth required) |
 | `POST` | `/api/v1/payments/{id}/confirm/` | Server-side Espees confirmation — redirects are never proof (auth required) |
 | `GET` | `/api/v1/payments/{id}/return/` | Hosted-flow return: confirms server-side, redirects to app (no auth; unguessable id) |
+
+The web frontend serves the return leg at `/payments/return` (verified status +
+explicit confirmation check), so frontend hosting must rewrite that path to
+`index.html` for the redirect to land.
 | `POST` | `/api/v1/wallet/link/` | Claim an Espees wallet address → `requires_action` (auth required) |
 | `POST` | `/api/v1/wallet/verify/` | Verify a claimed address → `associated` (staff only) |
 | `GET` | `/api/v1/businesses/` | Business discovery (public) — filters: `search`, `category`, `verified=true`, `mine=true`, `near=lat,lng` (+`radius_km`, default 25; adds `distance_km`), `sort=name\|-name\|newest\|rating`. Images: `logo`, `cover_image` (multipart PATCH, max 5 MB) |

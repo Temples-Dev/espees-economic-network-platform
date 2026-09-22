@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 
 import { errorMessage } from "../lib/api";
-import type { Business, Offering } from "../lib/catalog";
+import type { Business, Offering, Order } from "../lib/catalog";
 import { createOrder, listBusinesses, listOfferings } from "../lib/catalog";
+import type { Payment } from "../lib/money";
+import { confirmPayment, createMerchantPayment, newIdempotencyKey } from "../lib/money";
 import type { MemberTab } from "./MemberApp";
 import { Card, ErrorText, Muted, NoticeText, PrimaryButton, StatusPill, inputClass } from "./ui";
 
@@ -15,6 +17,9 @@ export function Discover({ onGo }: { onGo: (tab: MemberTab) => void }) {
   const [basket, setBasket] = useState<Record<string, number>>({});
   const [placing, setPlacing] = useState(false);
   const [justOrdered, setJustOrdered] = useState(false);
+  const [lastOrder, setLastOrder] = useState<Order | null>(null);
+  const [orderPayment, setOrderPayment] = useState<Payment | null>(null);
+  const [paying, setPaying] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,6 +38,8 @@ export function Discover({ onGo }: { onGo: (tab: MemberTab) => void }) {
     setOfferings([]);
     setBasket({});
     setJustOrdered(false);
+    setLastOrder(null);
+    setOrderPayment(null);
     setNotice(null);
     setError(null);
     setOrderError(null);
@@ -63,6 +70,35 @@ export function Discover({ onGo }: { onGo: (tab: MemberTab) => void }) {
 
   const basketCount = Object.values(basket).reduce((n, q) => n + q, 0);
 
+  async function payForOrder() {
+    if (!selected || !lastOrder) return;
+    setOrderError(null);
+    setPaying(true);
+    try {
+      const payment = await createMerchantPayment({
+        narration: `Order at ${selected.name}`,
+        amount_espees: lastOrder.total,
+        idempotency_key: newIdempotencyKey(),
+        user_data: { eenp_order_id: lastOrder.id },
+      });
+      setOrderPayment(payment);
+    } catch (err) {
+      setOrderError(errorMessage(err, "Payment creation failed."));
+    } finally {
+      setPaying(false);
+    }
+  }
+
+  async function confirmOrderPayment() {
+    if (!orderPayment) return;
+    setOrderError(null);
+    try {
+      setOrderPayment(await confirmPayment(orderPayment.id));
+    } catch (err) {
+      setOrderError(errorMessage(err, "Confirmation failed."));
+    }
+  }
+
   async function placeOrder() {
     if (!selected || basketCount === 0) return;
     setOrderError(null);
@@ -75,6 +111,8 @@ export function Discover({ onGo }: { onGo: (tab: MemberTab) => void }) {
       );
       setBasket({});
       setJustOrdered(true);
+      setLastOrder(order);
+      setOrderPayment(null);
       setNotice(`Order placed: ${order.total} ESP. Pay the business to complete it.`);
     } catch (err) {
       setOrderError(errorMessage(err, "Order placement failed."));
@@ -198,6 +236,41 @@ export function Discover({ onGo }: { onGo: (tab: MemberTab) => void }) {
             </div>
           )}
           {basketCount === 0 && <NoticeText message={notice} />}
+          {basketCount === 0 && justOrdered && lastOrder && !orderPayment && (
+            <button
+              onClick={() => void payForOrder()}
+              disabled={paying}
+              className="w-full rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600 disabled:opacity-50"
+            >
+              {paying ? "Creating payment…" : `Pay ${lastOrder.total} ESP now`}
+            </button>
+          )}
+          {orderPayment && (
+            <div className="rounded-lg bg-zinc-950 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-medium">
+                  {orderPayment.amount_espees} ESP payment
+                </p>
+                <StatusPill value={orderPayment.status} />
+              </div>
+              {orderPayment.payment_url && (
+                <a
+                  href={orderPayment.payment_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-2 block rounded-lg bg-emerald-700 px-4 py-2 text-center text-sm font-medium text-white hover:bg-emerald-600"
+                >
+                  Continue in Espees portal
+                </a>
+              )}
+              <button
+                onClick={() => void confirmOrderPayment()}
+                className="mt-2 w-full rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-200 hover:border-zinc-500"
+              >
+                Check confirmation status
+              </button>
+            </div>
+          )}
           {basketCount === 0 && justOrdered && (
             <button
               onClick={() => onGo("orders")}

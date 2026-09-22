@@ -78,6 +78,7 @@ export async function createMerchantPayment(input: {
   amount_espees: string;
   product_sku?: string;
   idempotency_key?: string;
+  user_data?: Record<string, unknown>;
 }): Promise<Payment> {
   return api.post("/api/v1/payments/merchant/", input);
 }

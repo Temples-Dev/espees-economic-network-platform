@@ -10,10 +10,21 @@ const { mockListBusinesses, mockListOfferings, mockCreateOrder } = vi.hoisted(()
   mockCreateOrder: vi.fn(),
 }));
 
+const { mockCreatePayment, mockConfirmPayment } = vi.hoisted(() => ({
+  mockCreatePayment: vi.fn(),
+  mockConfirmPayment: vi.fn(),
+}));
+
 vi.mock("../../lib/catalog", () => ({
   listBusinesses: mockListBusinesses,
   listOfferings: mockListOfferings,
   createOrder: mockCreateOrder,
+}));
+
+vi.mock("../../lib/money", () => ({
+  createMerchantPayment: mockCreatePayment,
+  confirmPayment: mockConfirmPayment,
+  newIdempotencyKey: () => "test-key",
 }));
 
 beforeEach(() => {
@@ -109,5 +120,38 @@ describe("Discover", () => {
     expect(await screen.findByText("Offering unavailable.")).toBeInTheDocument();
     expect(screen.getByLabelText("Quantity of Jollof")).toHaveTextContent("1");
     expect(mockCreateOrder).toHaveBeenCalledTimes(1);
+  });
+
+  it("pays for a placed order with the order linked", async () => {
+    const user = userEvent.setup();
+    mockListOfferings.mockResolvedValue([
+      { id: "o1", name: "Jollof", kind: "product", price: "15.00" },
+    ]);
+    mockCreateOrder.mockResolvedValue({ id: "ord9", total: "30.00" });
+    mockCreatePayment.mockResolvedValue({
+      id: "pay9",
+      narration: "Order at Ama's Kitchen",
+      amount_espees: "30.00",
+      status: "pending",
+      payment_url: "https://payment.espees.org/pay/ref-9",
+      created_at: "2026-09-22T00:00:00Z",
+      updated_at: "2026-09-22T00:00:00Z",
+    });
+    render(<Discover onGo={() => {}} />);
+    await user.click(await screen.findByText("Ama's Kitchen"));
+    await user.click(screen.getByRole("button", { name: "Add one Jollof" }));
+    await user.click(screen.getByRole("button", { name: "Add one Jollof" }));
+    await user.click(screen.getByRole("button", { name: "Place order" }));
+    await screen.findByText(/Order placed: 30.00 ESP/);
+
+    await user.click(screen.getByRole("button", { name: "Pay 30.00 ESP now" }));
+    expect(mockCreatePayment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        amount_espees: "30.00",
+        user_data: { eenp_order_id: "ord9" },
+      }),
+    );
+    const link = await screen.findByRole("link", { name: "Continue in Espees portal" });
+    expect(link).toHaveAttribute("href", "https://payment.espees.org/pay/ref-9");
   });
 });
