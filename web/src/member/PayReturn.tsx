@@ -47,7 +47,7 @@ export function PayReturn() {
     return (
       <main className="mx-auto mt-16 max-w-sm px-6">
         <h1 className="text-xl font-semibold">Payment return</h1>
-        <p className="mt-2 text-sm text-zinc-400">No payment reference in this link.</p>
+        <p className="mt-2 text-sm text-body">No payment reference in this link.</p>
         <button
           onClick={backToApp}
           className="mt-6 w-full rounded-lg bg-royal px-4 py-2 text-sm font-medium text-white hover:bg-deep"
@@ -62,7 +62,7 @@ export function PayReturn() {
     <main className="mx-auto mt-16 max-w-sm px-6">
       <h1 className="text-xl font-semibold">Payment return</h1>
       {result && (
-        <p className="mt-1 text-sm text-zinc-500">
+        <p className="mt-1 text-sm text-body/80">
           Espees sent you back with “{result}” — the verified status is below.
         </p>
       )}
@@ -79,7 +79,7 @@ export function PayReturn() {
               <StatusPill value={payment.status} />
             </div>
             {payment.status_detail && (
-              <p className="mt-1 text-xs text-zinc-500">{payment.status_detail}</p>
+              <p className="mt-1 text-xs text-body/80">{payment.status_detail}</p>
             )}
             <NoticeText
               message={
@@ -92,7 +92,7 @@ export function PayReturn() {
               <button
                 onClick={() => void check()}
                 disabled={checking}
-                className="mt-3 w-full rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-200 hover:border-zinc-500 disabled:opacity-50"
+                className="mt-3 w-full rounded-lg border border-border px-4 py-2 text-sm text-ink hover:border-royal/40 disabled:opacity-50"
               >
                 {checking ? "Confirming…" : "Check confirmation status"}
               </button>

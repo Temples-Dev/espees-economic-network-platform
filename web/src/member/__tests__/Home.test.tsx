@@ -4,6 +4,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Home } from "../Home";
 
+const testUser = {
+  id: "u1",
+  email: "member@example.com",
+  full_name: "Ada Member",
+  is_verified: true,
+  is_staff: false,
+  wallet: null,
+};
+
 const { mockCaps, mockPayments, mockBusinesses, mockCampaigns } = vi.hoisted(() => ({
   mockCaps: vi.fn(),
   mockPayments: vi.fn(),
@@ -49,7 +58,7 @@ describe("Home", () => {
         created_at: "2026-09-22T00:00:00Z",
       },
     ]);
-    render(<Home onGo={() => {}} />);
+    render(<Home user={testUser} onGo={() => {}} />);
 
     expect(await screen.findByText("pending external")).toBeInTheDocument();
     expect(await screen.findByText("2")).toBeInTheDocument();
@@ -68,7 +77,7 @@ describe("Home", () => {
       wallet_ready: false,
       merchant_configured: false,
     });
-    render(<Home onGo={() => {}} />);
+    render(<Home user={testUser} onGo={() => {}} />);
 
     expect(await screen.findByRole("button", { name: "Pay" })).toBeDisabled();
   });
@@ -76,7 +85,7 @@ describe("Home", () => {
   it("navigates to wallet and pay tabs", async () => {
     const user = userEvent.setup();
     const onGo = vi.fn();
-    render(<Home onGo={onGo} />);
+    render(<Home user={testUser} onGo={onGo} />);
     await screen.findByText("pending external");
 
     await user.click(screen.getByRole("button", { name: "Open wallet" }));

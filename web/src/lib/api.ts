@@ -122,6 +122,16 @@ class Api {
 
 export const api = new Api();
 
+export async function signOut(): Promise<void> {
+  try {
+    await api.post("/api/v1/auth/logout/", { refresh: api.getRefreshToken() });
+  } catch {
+    /* fall through to local cleanup */
+  } finally {
+    api.clearTokens();
+  }
+}
+
 /** Human-readable message from an API failure. DRF ships `detail` as a
  * string or a list of strings, sometimes nested one level deep. */
 export function errorMessage(err: unknown, fallback: string): string {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { errorMessage } from "../lib/api";
+import type { User } from "../lib/auth";
 import { listBusinesses, listCampaigns } from "../lib/catalog";
 import type { Capabilities, Payment } from "../lib/money";
 import { getCapabilities, listPayments } from "../lib/money";
@@ -8,7 +9,11 @@ import { Card, Muted, StatusPill } from "./ui";
 
 import type { MemberTab } from "./MemberApp";
 
-export function Home({ onGo }: { onGo: (tab: MemberTab) => void }) {
+function firstName(user: User): string {
+  return (user.full_name || user.email).split(/\s+/)[0]!;
+}
+
+export function Home({ user, onGo }: { user: User; onGo: (tab: MemberTab) => void }) {
   const [caps, setCaps] = useState<Capabilities | null>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [counts, setCounts] = useState<{ businesses: number; campaigns: number } | null>(null);
@@ -33,16 +38,21 @@ export function Home({ onGo }: { onGo: (tab: MemberTab) => void }) {
   }, []);
 
   return (
-    <div className="space-y-4">
-      {error && <p className="text-sm text-red-400">{error}</p>}
+    <div className="space-y-5">
+      <div>
+        <h2 className="text-2xl font-semibold text-ink">Welcome back, {firstName(user)}</h2>
+        <p className="mt-1 text-sm text-body">Here's what's happening across your account today.</p>
+      </div>
+
+      {error && <p className="text-sm text-red-600">{error}</p>}
 
       <Card>
-        <p className="text-sm text-zinc-400">Wallet</p>
+        <p className="text-sm text-body">Wallet</p>
         {caps ? (
           <div className="mt-1 flex items-center gap-2">
             <StatusPill value={caps.wallet_status ?? "unknown"} />
             {!caps.wallet_ready && (
-              <span className="text-xs text-zinc-500">
+              <span className="text-xs text-body/80">
                 Setup pending — link your Espees wallet to enable payments.
               </span>
             )}
@@ -53,7 +63,7 @@ export function Home({ onGo }: { onGo: (tab: MemberTab) => void }) {
         <div className="mt-3 flex gap-2">
           <button
             onClick={() => onGo("wallet")}
-            className="rounded-lg border border-zinc-700 px-3 py-1.5 text-sm text-zinc-200 hover:border-zinc-500"
+            className="rounded-lg border border-border px-3 py-1.5 text-sm text-ink hover:border-royal/40"
           >
             Open wallet
           </button>
@@ -70,11 +80,11 @@ export function Home({ onGo }: { onGo: (tab: MemberTab) => void }) {
       <div className="grid grid-cols-2 gap-3">
         <Card>
           <p className="text-2xl font-semibold">{counts?.businesses ?? "…"}</p>
-          <p className="text-sm text-zinc-400">Businesses</p>
+          <p className="text-sm text-body">Businesses</p>
         </Card>
         <Card>
           <p className="text-2xl font-semibold">{counts?.campaigns ?? "…"}</p>
-          <p className="text-sm text-zinc-400">Campaigns</p>
+          <p className="text-sm text-body">Campaigns</p>
         </Card>
       </div>
 
@@ -92,7 +102,7 @@ export function Home({ onGo }: { onGo: (tab: MemberTab) => void }) {
                   </p>
                   <StatusPill value={p.status} />
                 </div>
-                <p className="text-xs text-zinc-500">
+                <p className="text-xs text-body/80">
                   {new Date(p.created_at).toLocaleString()}
                 </p>
               </Card>

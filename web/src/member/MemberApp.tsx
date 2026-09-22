@@ -1,4 +1,11 @@
-import { useState } from "react";
+import { CreditCard, Home as HomeIcon, LogOut, Radio, Search, ShoppingBag, Wallet as WalletIcon } from "lucide-react";
+import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+
+import { AppShell } from "@/components/layout/app-shell";
+import { BrandMark } from "@/components/layout/brand-mark";
+import type { NavItem } from "@/components/layout/sidebar";
+import { Avatar, AvatarFallback, initials } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 
 import type { User } from "../lib/auth";
 import { Campaigns } from "./Campaigns";
@@ -12,55 +19,76 @@ type Tab = "home" | "wallet" | "pay" | "discover" | "orders" | "campaigns";
 
 export type MemberTab = Tab;
 
-const TABS: Array<{ id: Tab; label: string }> = [
-  { id: "home", label: "Home" },
-  { id: "wallet", label: "Wallet" },
-  { id: "pay", label: "Pay" },
-  { id: "discover", label: "Discover" },
-  { id: "orders", label: "Orders" },
-  { id: "campaigns", label: "Campaigns" },
+const TAB_PATH: Record<Tab, string> = {
+  home: "/app",
+  wallet: "/app/wallet",
+  pay: "/app/pay",
+  discover: "/app/discover",
+  orders: "/app/orders",
+  campaigns: "/app/campaigns",
+};
+
+const NAV: NavItem[] = [
+  { to: "/app", label: "Home", icon: HomeIcon, end: true },
+  { to: "/app/discover", label: "Discover", icon: Search },
+  { to: "/app/pay", label: "Pay", icon: CreditCard },
+  { to: "/app/wallet", label: "Wallet", icon: WalletIcon },
+  { to: "/app/orders", label: "Orders", icon: ShoppingBag },
+  { to: "/app/campaigns", label: "Campaigns", icon: Radio },
 ];
 
+const TITLES: Record<string, string> = {
+  "/app": "Home",
+  "/app/discover": "Discover",
+  "/app/pay": "Pay",
+  "/app/wallet": "Wallet",
+  "/app/orders": "Orders",
+  "/app/campaigns": "Campaigns",
+};
+
+function Brand() {
+  return (
+    <div className="flex items-center gap-2.5">
+      <BrandMark />
+      <p className="text-sm font-semibold text-ink">EENP</p>
+    </div>
+  );
+}
+
 export function MemberApp({ user, onSignOut }: { user: User; onSignOut: () => void }) {
-  const [tab, setTab] = useState<Tab>("home");
+  const navigate = useNavigate();
+  const title = TITLES[useLocation().pathname] ?? "EENP";
+  const onGo = (tab: Tab) => navigate(TAB_PATH[tab]);
 
   return (
-    <div className="mx-auto mt-8 max-w-2xl px-6 pb-16">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Espees</h1>
-          <p className="text-sm text-zinc-500">{user.full_name || user.email}</p>
+    <AppShell
+      brand={<Brand />}
+      items={NAV}
+      sidebarFooter={
+        <div className="flex items-center gap-3 px-2">
+          <Avatar className="h-9 w-9">
+            <AvatarFallback>{initials(user.full_name || user.email)}</AvatarFallback>
+          </Avatar>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium text-ink">{user.full_name || user.email}</p>
+            <p className="truncate text-xs text-body">{user.email}</p>
+          </div>
+          <Button variant="ghost" size="icon" aria-label="Sign out" onClick={onSignOut}>
+            <LogOut className="h-4 w-4" />
+          </Button>
         </div>
-        <button
-          onClick={onSignOut}
-          className="rounded-lg border border-zinc-700 px-3 py-1.5 text-sm text-zinc-300 hover:border-zinc-500"
-        >
-          Sign out
-        </button>
-      </div>
-      <nav className="mt-6 flex flex-wrap gap-2">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={
-              tab === t.id
-                ? "rounded-lg bg-royal px-3 py-1.5 text-sm font-medium text-white"
-                : "rounded-lg border border-zinc-700 px-3 py-1.5 text-sm text-zinc-300 hover:border-zinc-500"
-            }
-          >
-            {t.label}
-          </button>
-        ))}
-      </nav>
-      <div className="mt-6">
-        {tab === "home" && <Home onGo={setTab} />}
-        {tab === "wallet" && <Wallet />}
-        {tab === "pay" && <Pay />}
-        {tab === "discover" && <Discover onGo={setTab} />}
-        {tab === "orders" && <Orders />}
-        {tab === "campaigns" && <Campaigns />}
-      </div>
-    </div>
+      }
+      topBar={<h1 className="text-lg font-semibold text-ink">{title}</h1>}
+    >
+      <Routes>
+        <Route index element={<Home user={user} onGo={onGo} />} />
+        <Route path="wallet" element={<Wallet />} />
+        <Route path="pay" element={<Pay />} />
+        <Route path="discover" element={<Discover onGo={onGo} />} />
+        <Route path="orders" element={<Orders />} />
+        <Route path="campaigns" element={<Campaigns />} />
+        <Route path="*" element={<Navigate to="/app" replace />} />
+      </Routes>
+    </AppShell>
   );
 }

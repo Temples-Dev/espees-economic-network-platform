@@ -71,10 +71,10 @@ export function Campaigns() {
                   <p className="font-medium">{c.title}</p>
                   <StatusPill value={c.status} />
                 </div>
-                <div className="mt-2 h-1.5 overflow-hidden rounded bg-zinc-800">
+                <div className="mt-2 h-1.5 overflow-hidden rounded bg-border">
                   <div className="h-full bg-gold" style={{ width: `${progress(c)}%` }} />
                 </div>
-                <p className="mt-1 text-xs text-zinc-500">
+                <p className="mt-1 text-xs text-body/80">
                   {c.raised_espees ?? "0"} / {c.goal_espees} ESP · {progress(c)}%
                   {c.contribution_count != null ? ` · ${c.contribution_count} contributions` : ""}
                 </p>
@@ -89,13 +89,13 @@ export function Campaigns() {
           <div className="flex items-start justify-between gap-2">
             <div>
               <h3 className="font-medium">{selected.title}</h3>
-              <p className="text-sm text-zinc-400">{selected.description || "No description."}</p>
+              <p className="text-sm text-body">{selected.description || "No description."}</p>
             </div>
-            <button onClick={() => setSelected(null)} className="text-sm text-zinc-400 hover:text-zinc-200">
+            <button onClick={() => setSelected(null)} className="text-sm text-body hover:text-ink">
               Close
             </button>
           </div>
-          <p className="mt-2 text-sm text-zinc-300">
+          <p className="mt-2 text-sm text-ink/80">
             {selected.raised_espees ?? "0"} / {selected.goal_espees} ESP raised
           </p>
           {selected.status === "active" ? (

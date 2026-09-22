@@ -48,7 +48,7 @@ export function Pay() {
     <div className="space-y-4">
       <Card>
         <h3 className="font-medium">New merchant payment</h3>
-        <p className="mt-1 text-xs text-zinc-500">
+        <p className="mt-1 text-xs text-body/80">
           Creates a payment intent, then continue in the Espees portal. Only a server-side
           confirmation completes the payment.
         </p>
@@ -87,7 +87,7 @@ export function Pay() {
             </p>
             <StatusPill value={payment.status} />
           </div>
-          <div className="mt-2 space-y-1 text-sm text-zinc-400">
+          <div className="mt-2 space-y-1 text-sm text-body">
             {payment.espees_payment_ref && (
               <p className="break-all font-mono text-xs">Ref: {payment.espees_payment_ref}</p>
             )}
@@ -108,7 +108,7 @@ export function Pay() {
           <button
             onClick={() => void confirm()}
             disabled={confirming}
-            className="mt-2 w-full rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-200 hover:border-zinc-500 disabled:opacity-50"
+            className="mt-2 w-full rounded-lg border border-border px-4 py-2 text-sm text-ink hover:border-royal/40 disabled:opacity-50"
           >
             {confirming ? "Confirming…" : "Check confirmation status"}
           </button>

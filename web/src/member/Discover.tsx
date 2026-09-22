@@ -157,11 +157,11 @@ export function Discover({ onGo }: { onGo: (tab: MemberTab) => void }) {
                   <p className="font-medium">{b.name}</p>
                   {b.verification_status === "verified" && <StatusPill value="verified" />}
                 </div>
-                <p className="text-sm text-zinc-400">
+                <p className="text-sm text-body">
                   {[b.category, b.location].filter(Boolean).join(" · ") || "—"}
                 </p>
                 {b.average_rating != null && (
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-xs text-body/80">
                     ★ {b.average_rating} ({b.review_count ?? 0} reviews)
                   </p>
                 )}
@@ -176,14 +176,14 @@ export function Discover({ onGo }: { onGo: (tab: MemberTab) => void }) {
           <div className="flex items-start justify-between gap-2">
             <div>
               <h3 className="font-medium">{selected.name}</h3>
-              <p className="text-sm text-zinc-400">{selected.description || "No description."}</p>
-              {selected.location && <p className="text-xs text-zinc-500">{selected.location}</p>}
+              <p className="text-sm text-body">{selected.description || "No description."}</p>
+              {selected.location && <p className="text-xs text-body/80">{selected.location}</p>}
             </div>
-            <button onClick={() => setSelected(null)} className="text-sm text-zinc-400 hover:text-zinc-200">
+            <button onClick={() => setSelected(null)} className="text-sm text-body hover:text-ink">
               Close
             </button>
           </div>
-          <h4 className="mt-3 mb-2 text-sm font-medium text-zinc-300">Products & services</h4>
+          <h4 className="mt-3 mb-2 text-sm font-medium text-ink/80">Products & services</h4>
           {offerings.length === 0 ? (
             <Muted>No offerings listed.</Muted>
           ) : (
@@ -191,10 +191,10 @@ export function Discover({ onGo }: { onGo: (tab: MemberTab) => void }) {
               {offerings.map((o) => {
                 const qty = basket[o.id] ?? 0;
                 return (
-                  <div key={o.id} className="flex items-center justify-between gap-2 rounded-lg bg-zinc-950 p-3">
+                  <div key={o.id} className="flex items-center justify-between gap-2 rounded-lg bg-paper p-3">
                     <div>
                       <p className="text-sm font-medium">{o.name}</p>
-                      <p className="text-xs text-zinc-500">
+                      <p className="text-xs text-body/80">
                         {o.kind} · {o.price} ESP
                       </p>
                     </div>
@@ -203,7 +203,7 @@ export function Discover({ onGo }: { onGo: (tab: MemberTab) => void }) {
                         aria-label={`Remove one ${o.name}`}
                         onClick={() => setQty(o.id, qty - 1)}
                         disabled={qty === 0}
-                        className="rounded border border-zinc-700 px-2 py-0.5 text-sm text-zinc-300 disabled:opacity-30"
+                        className="rounded border border-border px-2 py-0.5 text-sm text-ink/80 disabled:opacity-30"
                       >
                         −
                       </button>
@@ -213,7 +213,7 @@ export function Discover({ onGo }: { onGo: (tab: MemberTab) => void }) {
                       <button
                         aria-label={`Add one ${o.name}`}
                         onClick={() => setQty(o.id, qty + 1)}
-                        className="rounded border border-zinc-700 px-2 py-0.5 text-sm text-zinc-300"
+                        className="rounded border border-border px-2 py-0.5 text-sm text-ink/80"
                       >
                         +
                       </button>
@@ -225,9 +225,9 @@ export function Discover({ onGo }: { onGo: (tab: MemberTab) => void }) {
           )}
           {basketCount > 0 && (
             <div className="mt-3 space-y-2">
-              <p className="text-sm text-zinc-300">
+              <p className="text-sm text-ink/80">
                 Basket: {basketCount} item{basketCount === 1 ? "" : "s"} · ≈ {basketEstimate()} ESP
-                <span className="text-zinc-500"> (total confirmed on placement)</span>
+                <span className="text-body/80"> (total confirmed on placement)</span>
               </p>
               <ErrorText message={orderError} />
               <PrimaryButton disabled={placing} onClick={() => void placeOrder()}>
@@ -246,7 +246,7 @@ export function Discover({ onGo }: { onGo: (tab: MemberTab) => void }) {
             </button>
           )}
           {orderPayment && (
-            <div className="rounded-lg bg-zinc-950 p-3">
+            <div className="rounded-lg bg-paper p-3">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-sm font-medium">
                   {orderPayment.amount_espees} ESP payment
@@ -265,7 +265,7 @@ export function Discover({ onGo }: { onGo: (tab: MemberTab) => void }) {
               )}
               <button
                 onClick={() => void confirmOrderPayment()}
-                className="mt-2 w-full rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-200 hover:border-zinc-500"
+                className="mt-2 w-full rounded-lg border border-border px-4 py-2 text-sm text-ink hover:border-royal/40"
               >
                 Check confirmation status
               </button>

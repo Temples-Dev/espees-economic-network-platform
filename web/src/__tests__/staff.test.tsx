@@ -2,7 +2,8 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { Orders, Wallets } from "../App";
+import { Orders } from "../staff/Orders";
+import { Wallets } from "../staff/Wallets";
 
 const { mockGetList, mockPost, mockPatch } = vi.hoisted(() => ({
   mockGetList: vi.fn(),
@@ -90,8 +91,8 @@ describe("Orders actions", () => {
     mockPatch.mockResolvedValue({});
     render(<Orders />);
 
-    const card = await screen.findByText("30.00 Espees · pending");
-    const scope = within(card.closest("div") as HTMLElement);
+    const card = (await screen.findByText("pending")).closest('[class*="shadow-"]') as HTMLElement;
+    const scope = within(card);
     await user.click(scope.getByRole("button", { name: "Mark confirmed" }));
     expect(mockPatch).toHaveBeenCalledWith("/api/v1/orders/o1/status/", {
       status: "confirmed",
@@ -102,7 +103,7 @@ describe("Orders actions", () => {
   it("shows no actions for terminal orders", async () => {
     mockGetList.mockResolvedValue([{ ...pending, id: "o2", status: "fulfilled" }]);
     render(<Orders />);
-    await screen.findByText("30.00 Espees · fulfilled");
+    await screen.findByText("fulfilled");
     expect(screen.queryByRole("button", { name: /Mark / })).not.toBeInTheDocument();
   });
 
@@ -113,8 +114,8 @@ describe("Orders actions", () => {
     mockPatch.mockRejectedValue(new ApiError(400, { detail: "Invalid transition." }));
     render(<Orders />);
 
-    const card = await screen.findByText("30.00 Espees · pending");
-    const scope = within(card.closest("div") as HTMLElement);
+    const card = (await screen.findByText("pending")).closest('[class*="shadow-"]') as HTMLElement;
+    const scope = within(card);
     await user.click(scope.getByRole("button", { name: "Mark cancelled" }));
     expect(await screen.findByText("Invalid transition.")).toBeInTheDocument();
   });

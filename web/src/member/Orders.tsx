@@ -34,7 +34,7 @@ export function Orders() {
               <StatusPill value={o.status} />
             </div>
             {o.items && o.items.length > 0 && (
-              <ul className="mt-2 space-y-1 text-sm text-zinc-400">
+              <ul className="mt-2 space-y-1 text-sm text-body">
                 {o.items.map((item, i) => (
                   <li key={i}>
                     {item.offering_name ?? "Item"} × {item.quantity} — {item.line_total} ESP
@@ -42,7 +42,7 @@ export function Orders() {
                 ))}
               </ul>
             )}
-            <p className="mt-1 text-xs text-zinc-500">
+            <p className="mt-1 text-xs text-body/80">
               {new Date(o.created_at).toLocaleString()}
             </p>
           </Card>
