@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import { api, errorMessage } from "./lib/api";
 import type { User } from "./lib/auth";
+import { MemberApp } from "./member/MemberApp";
 
 type Category = { id: string; name: string; slug: string };
 type Order = {
@@ -20,7 +21,7 @@ type SessionRow = {
 };
 type Notice = { id: string; title: string; message: string; is_read: boolean };
 
-type Section = "overview" | "orders" | "categories" | "sessions" | "account";
+type Section = "overview" | "orders" | "categories" | "sessions" | "account" | "member";
 
 function slugify(name: string): string {
   return name
@@ -598,6 +599,7 @@ function Dashboard({ user, onSignedOut }: { user: User; onSignedOut: () => void 
     { id: "categories", label: "Categories" },
     { id: "sessions", label: "Sessions" },
     { id: "account", label: "Account" },
+    { id: "member", label: "Member view" },
   ];
 
   return (
@@ -635,6 +637,7 @@ function Dashboard({ user, onSignedOut }: { user: User; onSignedOut: () => void 
         {section === "categories" && <Categories />}
         {section === "sessions" && <Sessions />}
         {section === "account" && <Account user={user} onSignedOut={onSignedOut} />}
+        {section === "member" && <MemberApp user={user} onSignOut={() => void signOut().then(onSignedOut)} />}
       </div>
     </main>
   );
@@ -656,17 +659,8 @@ export function App() {
   if (!user) return <LoginForm onDone={setUser} />;
   if (!user.is_staff) {
     return (
-      <main className="mx-auto mt-16 max-w-sm px-6 text-center">
-        <h1 className="text-xl font-semibold">Admin access required</h1>
-        <p className="mt-2 text-sm text-zinc-400">
-          {user.email} is signed in but is not staff.
-        </p>
-        <button
-          onClick={() => void signOut().then(() => setUser(null))}
-          className="mt-6 w-full rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-500"
-        >
-          Sign out
-        </button>
+      <main>
+        <MemberApp user={user} onSignOut={() => void signOut().then(() => setUser(null))} />
       </main>
     );
   }
