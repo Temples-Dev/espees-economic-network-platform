@@ -38,6 +38,15 @@ Authentication uses JWT (simplejwt). Protected endpoints expect `Authorization: 
 | `POST` | `/api/v1/auth/login/` | Obtain access + refresh tokens |
 | `POST` | `/api/v1/auth/refresh/` | Refresh an access token |
 | `GET` | `/api/v1/me/` | Current member profile + wallet (auth required) |
+| `GET` | `/api/v1/wallet/` | Wallet association + capability flags (Doc16 §8-9, §25.6; auth required) |
+| `GET` | `/api/v1/wallet/capabilities/` | Capability flags: `BALANCE/FUNDING/PAYMENT/RECEIVING/WITHDRAWAL_AVAILABLE` (auth required) |
+| `POST` | `/api/v1/payments/merchant/` | Create a merchant payment intent (idempotent via `idempotency_key`; auth required) |
+| `GET` | `/api/v1/payments/` | List your payment intents (auth required) |
+| `GET` | `/api/v1/payments/{id}/` | Payment detail incl. `payment_url` + server-side status (auth required) |
+| `POST` | `/api/v1/payments/{id}/confirm/` | Server-side Espees confirmation — redirects are never proof (auth required) |
+| `GET` | `/api/v1/payments/{id}/return/` | Hosted-flow return: confirms server-side, redirects to app (no auth; unguessable id) |
+| `POST` | `/api/v1/wallet/link/` | Claim an Espees wallet address → `requires_action` (auth required) |
+| `POST` | `/api/v1/wallet/verify/` | Verify a claimed address → `associated` (staff only) |
 | `GET` | `/api/v1/businesses/` | Business discovery (public) — filters: `search`, `category`, `verified=true`, `mine=true`, `near=lat,lng` (+`radius_km`, default 25; adds `distance_km`), `sort=name\|-name\|newest\|rating`. Images: `logo`, `cover_image` (multipart PATCH, max 5 MB) |
 | `GET` | `/api/v1/businesses/{id}/` | Business detail incl. owner + admins (public) |
 | `POST` | `/api/v1/businesses/` | Create a business (auth required; creator becomes owner) |
@@ -96,3 +105,14 @@ Authentication uses JWT (simplejwt). Protected endpoints expect `Authorization: 
 | `CORS_ALLOWED_ORIGINS` | Comma-separated allowed origins | empty |
 | `AUTH_THROTTLE_RATE` | Per-IP limit on sign-in, sign-up, reset and verification endpoints | `20/min` |
 | `FRONTEND_URL` | Frontend URL for links | `http://localhost:8081` |
+| `ESPEES_API_BASE_URL` | Espees API base (Merchant/Vending; Doc16 §5) | `https://api.espees.org` |
+| `ESPEES_API_KEY` | Espees `x-api-key` (Merchant + confirm). Blank = intents recorded, confirmation pending | empty |
+| `ESPEES_MERCHANT_WALLET` | Merchant wallet address for product creation | empty |
+| `ESPEES_PAYMENT_PORTAL_URL` | Hosted payment portal base | `https://payment.espees.org/pay` |
+| `ESPEES_VENDING_ENABLED` | Allow Vending only where explicitly authorized (Doc16 §5.2) | `False` |
+| `BACKEND_PUBLIC_URL` | Public base URL of this backend for per-payment Espees return URLs (falls back to `FRONTEND_URL`) | empty |
+
+Wallet/provisioning note (Doc16 §7): there is no public Espees User API, so new
+accounts get `wallet.status = pending_external` (never a faked active wallet).
+Balance, funding, P2P transfer, withdrawal and webhooks remain `DEPENDENT` and
+raise `ExternalDependencyPending` instead of inventing calls.

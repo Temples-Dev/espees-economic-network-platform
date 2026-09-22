@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'quotes',
     'campaigns',
     'notifications',
+    'payments',
 ]
 
 MIDDLEWARE = [
@@ -146,6 +147,19 @@ if len(sys.argv) > 1 and sys.argv[1] == 'test':
 
 # ----- Espees Platform Configuration -----
 
+# Espees integration (Doc16 §5, §31). Only Merchant/Vending are confirmed
+# surfaces; User API capabilities remain DEPENDENT. Leave blank until
+# production credentials are issued — the platform must record intents
+# and report capabilities instead of faking settlement.
+ESPEES_API_BASE_URL = env('ESPEES_API_BASE_URL', default='https://api.espees.org')
+ESPEES_API_KEY = env('ESPEES_API_KEY', default='')
+ESPEES_MERCHANT_WALLET = env('ESPEES_MERCHANT_WALLET', default='')
+ESPEES_PAYMENT_PORTAL_URL = env('ESPEES_PAYMENT_PORTAL_URL', default='https://payment.espees.org/pay')
+ESPEES_VENDING_ENABLED = env.bool('ESPEES_VENDING_ENABLED', default=False)
+# Public base URL of this backend, used to build per-payment Espees
+# success/fail return URLs. Falls back to FRONTEND_URL when unset.
+BACKEND_PUBLIC_URL = env('BACKEND_PUBLIC_URL', default='')
+
 # REST Framework
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
@@ -174,6 +188,8 @@ SPECTACULAR_SETTINGS = {
     'COMPONENT_SPLIT_REQUEST': True,
     'TAGS': [
         {'name': 'accounts', 'description': 'Registration, authentication, sessions and security.'},
+        {'name': 'wallet', 'description': 'Wallet association and capability flags (Doc16).'},
+        {'name': 'payments', 'description': 'Merchant payment intents and server-side confirmation.'},
         {'name': 'businesses', 'description': 'Member businesses and trade profiles.'},
         {'name': 'reviews', 'description': 'Trust-building reviews on member businesses.'},
         {'name': 'conversations', 'description': 'Community conversations and messages.'},
